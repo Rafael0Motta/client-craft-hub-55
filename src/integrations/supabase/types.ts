@@ -14,16 +14,263 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      clientes: {
+        Row: {
+          campanha: string | null
+          created_at: string
+          gestor_id: string | null
+          id: string
+          nome: string
+          segmento: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          campanha?: string | null
+          created_at?: string
+          gestor_id?: string | null
+          id?: string
+          nome: string
+          segmento?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          campanha?: string | null
+          created_at?: string
+          gestor_id?: string | null
+          id?: string
+          nome?: string
+          segmento?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      criativo_comentarios: {
+        Row: {
+          autor_id: string | null
+          created_at: string
+          criativo_id: string
+          id: string
+          texto: string
+        }
+        Insert: {
+          autor_id?: string | null
+          created_at?: string
+          criativo_id: string
+          id?: string
+          texto: string
+        }
+        Update: {
+          autor_id?: string | null
+          created_at?: string
+          criativo_id?: string
+          id?: string
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "criativo_comentarios_criativo_id_fkey"
+            columns: ["criativo_id"]
+            isOneToOne: false
+            referencedRelation: "criativos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      criativos: {
+        Row: {
+          arquivo_nome: string
+          arquivo_path: string
+          arquivo_tipo: string | null
+          cliente_id: string
+          comentario_revisao: string | null
+          created_at: string
+          enviado_por: string | null
+          id: string
+          revisado_em: string | null
+          revisado_por: string | null
+          status: Database["public"]["Enums"]["creative_status"]
+          tarefa_id: string
+          updated_at: string
+        }
+        Insert: {
+          arquivo_nome: string
+          arquivo_path: string
+          arquivo_tipo?: string | null
+          cliente_id: string
+          comentario_revisao?: string | null
+          created_at?: string
+          enviado_por?: string | null
+          id?: string
+          revisado_em?: string | null
+          revisado_por?: string | null
+          status?: Database["public"]["Enums"]["creative_status"]
+          tarefa_id: string
+          updated_at?: string
+        }
+        Update: {
+          arquivo_nome?: string
+          arquivo_path?: string
+          arquivo_tipo?: string | null
+          cliente_id?: string
+          comentario_revisao?: string | null
+          created_at?: string
+          enviado_por?: string | null
+          id?: string
+          revisado_em?: string | null
+          revisado_por?: string | null
+          status?: Database["public"]["Enums"]["creative_status"]
+          tarefa_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "criativos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "criativos_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email: string
+          id: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tarefas: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          criado_por: string | null
+          descricao: string | null
+          id: string
+          prazo: string | null
+          prioridade: Database["public"]["Enums"]["task_priority"]
+          status: Database["public"]["Enums"]["task_status"]
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          prazo?: string | null
+          prioridade?: Database["public"]["Enums"]["task_priority"]
+          status?: Database["public"]["Enums"]["task_status"]
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          prazo?: string | null
+          prioridade?: Database["public"]["Enums"]["task_priority"]
+          status?: Database["public"]["Enums"]["task_status"]
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_gestor_of_cliente: {
+        Args: { _cliente_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_user_of_cliente: {
+        Args: { _cliente_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "gestor" | "cliente"
+      creative_status: "pendente_aprovacao" | "aprovado" | "reprovado"
+      task_priority: "baixa" | "media" | "alta" | "urgente"
+      task_status:
+        | "pendente"
+        | "em_andamento"
+        | "aguardando_aprovacao"
+        | "aprovado"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +397,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "gestor", "cliente"],
+      creative_status: ["pendente_aprovacao", "aprovado", "reprovado"],
+      task_priority: ["baixa", "media", "alta", "urgente"],
+      task_status: [
+        "pendente",
+        "em_andamento",
+        "aguardando_aprovacao",
+        "aprovado",
+      ],
+    },
   },
 } as const
