@@ -582,6 +582,7 @@ function CriativoCard({
                     : "Desativado"}
                 </span>
               </div>
+            </div>
 
             {descAtual && (
               <div className="mt-2 text-sm p-2 rounded bg-muted/50 border">
