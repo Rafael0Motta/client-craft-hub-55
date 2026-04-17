@@ -495,6 +495,27 @@ function CriativoCard({
               <Button size="sm" variant="outline" onClick={() => setShowComments((s) => !s)}>
                 <MessageSquare className="h-4 w-4 mr-1" /> Comentários
               </Button>
+              {canDelete && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive">
+                      <Trash2 className="h-4 w-4 mr-1" /> Excluir
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Excluir criativo?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta ação removerá o criativo <strong>{arquivoNome}</strong> e <strong>todas as suas versões e comentários</strong>. A tarefa permanece intacta. Não pode ser desfeita.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => onDelete(criativo.id)}>Excluir</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
             </div>
 
             {showReject && versaoAtual && (
