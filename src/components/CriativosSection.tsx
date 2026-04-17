@@ -35,11 +35,12 @@ export type CriativoRow = {
   link_url: string | null;
   descricao: string | null;
   status: string;
+  status_operacional: string;
   comentario_revisao: string | null;
   enviado_por: string | null;
   created_at: string;
   clientes?: { nome: string } | null;
-  tarefas?: { titulo: string } | null;
+  tarefas?: { titulo: string; tipos_tarefa?: { nome: string } | null } | null;
   profiles?: { nome: string } | null;
 };
 
@@ -80,10 +81,13 @@ export function CriativosSection({
   tarefaId,
   clienteId: clienteIdProp,
   showSenderForm = true,
+  tipoTarefaNome = null,
 }: {
   tarefaId?: string;
   clienteId?: string;
   showSenderForm?: boolean;
+  /** Quando o tipo da tarefa for "Criativo", o envio aceita apenas link (sem upload). */
+  tipoTarefaNome?: string | null;
 }) {
   const { role, user, clienteId: clienteIdCtx } = useAuth();
   const qc = useQueryClient();
@@ -97,7 +101,7 @@ export function CriativosSection({
       let q = supabase
         .from("criativos")
         .select(
-          "id, tarefa_id, cliente_id, arquivo_path, arquivo_nome, arquivo_tipo, link_url, descricao, status, comentario_revisao, enviado_por, created_at, clientes(nome), tarefas(titulo), profiles!enviado_por(nome)"
+          "id, tarefa_id, cliente_id, arquivo_path, arquivo_nome, arquivo_tipo, link_url, descricao, status, status_operacional, comentario_revisao, enviado_por, created_at, clientes(nome), tarefas(titulo, tipos_tarefa(nome)), profiles!enviado_por(nome)"
         )
         .order("created_at", { ascending: false });
       if (tarefaId) q = q.eq("tarefa_id", tarefaId);
@@ -146,6 +150,7 @@ export function CriativosSection({
         <EnvioCriativoForm
           tarefaIdFixo={tarefaId}
           clienteId={clienteId!}
+          tipoTarefaNome={tipoTarefaNome}
           onSent={() => {
             qc.invalidateQueries({ queryKey });
             qc.invalidateQueries({ queryKey: ["criativos"] });
@@ -190,15 +195,19 @@ function EnvioCriativoForm({
   tarefaIdFixo,
   clienteId,
   onSent,
+  tipoTarefaNome = null,
 }: {
   tarefaIdFixo?: string;
   clienteId: string;
   onSent: () => void;
+  tipoTarefaNome?: string | null;
 }) {
   const { user, role } = useAuth();
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploadMode, setUploadMode] = useState<UploadMode>("novo");
-  const [sourceMode, setSourceMode] = useState<SourceMode>("arquivo");
+  // Quando a tarefa é do tipo Criativo, força o modo "link" (sem upload).
+  const isCriativoTipo = (tipoTarefaNome ?? "").toLowerCase() === "criativo";
+  const [sourceMode, setSourceMode] = useState<SourceMode>(isCriativoTipo ? "link" : "arquivo");
   const [tarefaId, setTarefaId] = useState(tarefaIdFixo ?? "");
   const [criativoAlvoId, setCriativoAlvoId] = useState("");
   const [descricao, setDescricao] = useState("");
@@ -206,16 +215,25 @@ function EnvioCriativoForm({
   const [linkNome, setLinkNome] = useState("");
   const [uploading, setUploading] = useState(false);
 
+  // Para tarefa global (sem tarefaIdFixo), busca tipo da tarefa selecionada
   const { data: tarefasCliente } = useQuery({
     queryKey: ["tarefas-cliente-form", clienteId],
     enabled: !tarefaIdFixo && role === "cliente",
     queryFn: async () => {
-      const { data } = await supabase.from("tarefas").select("id, titulo").eq("cliente_id", clienteId);
-      return data ?? [];
+      const { data } = await supabase
+        .from("tarefas")
+        .select("id, titulo, tipos_tarefa(nome)")
+        .eq("cliente_id", clienteId);
+      return (data ?? []) as unknown as Array<{ id: string; titulo: string; tipos_tarefa: { nome: string } | null }>;
     },
   });
 
   const tarefaAtiva = tarefaIdFixo ?? tarefaId;
+
+  // Determina se a tarefa selecionada (no modo global) é do tipo Criativo
+  const tarefaSelecionada = tarefasCliente?.find((t) => t.id === tarefaId);
+  const isCriativoEffective =
+    isCriativoTipo || (tarefaSelecionada?.tipos_tarefa?.nome ?? "").toLowerCase() === "criativo";
 
   const { data: criativosDaTarefa } = useQuery({
     queryKey: ["criativos-tarefa-form", tarefaAtiva],
@@ -339,13 +357,24 @@ function EnvioCriativoForm({
           )}
           <div>
             <label className="text-sm font-medium mb-2 block">Origem</label>
-            <Select value={sourceMode} onValueChange={(v) => setSourceMode(v as SourceMode)}>
+            <Select
+              value={isCriativoEffective ? "link" : sourceMode}
+              onValueChange={(v) => setSourceMode(v as SourceMode)}
+              disabled={isCriativoEffective}
+            >
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="arquivo">Upload de arquivo</SelectItem>
+                {!isCriativoEffective && (
+                  <SelectItem value="arquivo">Upload de arquivo</SelectItem>
+                )}
                 <SelectItem value="link">Link (Drive, Dropbox, etc.)</SelectItem>
               </SelectContent>
             </Select>
+            {isCriativoEffective && (
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Tarefas do tipo Criativo aceitam apenas links.
+              </p>
+            )}
           </div>
         </div>
 
@@ -373,7 +402,7 @@ function EnvioCriativoForm({
           />
         </div>
 
-        {sourceMode === "link" ? (
+        {(sourceMode === "link" || isCriativoEffective) ? (
           <div className="space-y-3">
             <Input placeholder="Cole o link (https://drive.google.com/...)" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} />
             <Input placeholder="Nome de exibição (opcional)" value={linkNome} onChange={(e) => setLinkNome(e.target.value)} />
@@ -539,7 +568,20 @@ function CriativoCard({
                   </span>
                 </div>
               </div>
-              <StatusBadge status={status} kind="creative" />
+              <div className="flex flex-col items-end gap-1 shrink-0">
+                <StatusBadge status={status} kind="creative" />
+                <span className={`text-[10px] px-1.5 py-0.5 rounded border font-semibold uppercase tracking-wider ${
+                  criativo.status_operacional === "ativo"
+                    ? "bg-[var(--status-approved)]/15 text-[var(--status-approved)] border-[var(--status-approved)]/30"
+                    : criativo.status_operacional === "standby"
+                    ? "bg-[var(--status-pending)]/15 text-[var(--status-pending)] border-[var(--status-pending)]/30"
+                    : "bg-muted text-muted-foreground border-border"
+                }`}>
+                  {criativo.status_operacional === "ativo" ? "Ativo"
+                    : criativo.status_operacional === "standby" ? "Standby"
+                    : "Desativado"}
+                </span>
+              </div>
             </div>
 
             {descAtual && (
