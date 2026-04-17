@@ -327,15 +327,23 @@ function CriativosPage() {
       )}
 
       <div className="space-y-3">
-        {(criativos ?? []).map((c) => (
-          <CriativoCard
-            key={c.id}
-            criativo={c}
-            canReview={role === "admin" || role === "gestor"}
-            onApprove={(versaoId) => review.mutate({ versaoId, status: "aprovado" })}
-            onReject={(versaoId, comentario) => review.mutate({ versaoId, status: "reprovado", comentario })}
-          />
-        ))}
+        {(criativos ?? []).map((c) => {
+          const canDelete =
+            role === "admin" ||
+            role === "gestor" ||
+            (role === "cliente" && c.status === "pendente_aprovacao");
+          return (
+            <CriativoCard
+              key={c.id}
+              criativo={c}
+              canReview={role === "admin" || role === "gestor"}
+              canDelete={canDelete}
+              onApprove={(versaoId) => review.mutate({ versaoId, status: "aprovado" })}
+              onReject={(versaoId, comentario) => review.mutate({ versaoId, status: "reprovado", comentario })}
+              onDelete={(id) => deleteCriativo.mutate(id)}
+            />
+          );
+        })}
         {(criativos ?? []).length === 0 && (
           <Card>
             <CardContent className="py-12 text-center text-muted-foreground">
@@ -349,12 +357,14 @@ function CriativosPage() {
 }
 
 function CriativoCard({
-  criativo, canReview, onApprove, onReject,
+  criativo, canReview, canDelete, onApprove, onReject, onDelete,
 }: {
   criativo: Criativo;
   canReview: boolean;
+  canDelete: boolean;
   onApprove: (versaoId: string) => void;
   onReject: (versaoId: string, comentario: string) => void;
+  onDelete: (criativoId: string) => void;
 }) {
   const { user } = useAuth();
   const [showReject, setShowReject] = useState(false);
