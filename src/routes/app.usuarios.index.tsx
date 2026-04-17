@@ -32,6 +32,7 @@ type RoleFilter = "all" | "admin" | "gestor" | "cliente";
 function UsuariosPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<EditUser | null>(null);
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   const [search, setSearch] = useState("");
 
@@ -39,7 +40,7 @@ function UsuariosPage() {
     queryKey: ["users-list"],
     queryFn: async () => {
       const [{ data: profiles }, { data: roles }] = await Promise.all([
-        supabase.from("profiles").select("id, nome, email, created_at"),
+        supabase.from("profiles").select("id, nome, email, telefone, grupo_id, created_at"),
         supabase.from("user_roles").select("user_id, role"),
       ]);
       const roleMap = new Map((roles ?? []).map((r) => [r.user_id, r.role]));
