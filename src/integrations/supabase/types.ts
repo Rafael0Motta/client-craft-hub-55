@@ -111,13 +111,14 @@ export type Database = {
       criativo_versoes: {
         Row: {
           arquivo_nome: string
-          arquivo_path: string
+          arquivo_path: string | null
           arquivo_tipo: string | null
           comentario_revisao: string | null
           created_at: string
           criativo_id: string
           enviado_por: string | null
           id: string
+          link_url: string | null
           revisado_em: string | null
           revisado_por: string | null
           status: Database["public"]["Enums"]["creative_status"]
@@ -125,13 +126,14 @@ export type Database = {
         }
         Insert: {
           arquivo_nome: string
-          arquivo_path: string
+          arquivo_path?: string | null
           arquivo_tipo?: string | null
           comentario_revisao?: string | null
           created_at?: string
           criativo_id: string
           enviado_por?: string | null
           id?: string
+          link_url?: string | null
           revisado_em?: string | null
           revisado_por?: string | null
           status?: Database["public"]["Enums"]["creative_status"]
@@ -139,13 +141,14 @@ export type Database = {
         }
         Update: {
           arquivo_nome?: string
-          arquivo_path?: string
+          arquivo_path?: string | null
           arquivo_tipo?: string | null
           comentario_revisao?: string | null
           created_at?: string
           criativo_id?: string
           enviado_por?: string | null
           id?: string
+          link_url?: string | null
           revisado_em?: string | null
           revisado_por?: string | null
           status?: Database["public"]["Enums"]["creative_status"]
@@ -164,13 +167,14 @@ export type Database = {
       criativos: {
         Row: {
           arquivo_nome: string
-          arquivo_path: string
+          arquivo_path: string | null
           arquivo_tipo: string | null
           cliente_id: string
           comentario_revisao: string | null
           created_at: string
           enviado_por: string | null
           id: string
+          link_url: string | null
           revisado_em: string | null
           revisado_por: string | null
           status: Database["public"]["Enums"]["creative_status"]
@@ -179,13 +183,14 @@ export type Database = {
         }
         Insert: {
           arquivo_nome: string
-          arquivo_path: string
+          arquivo_path?: string | null
           arquivo_tipo?: string | null
           cliente_id: string
           comentario_revisao?: string | null
           created_at?: string
           enviado_por?: string | null
           id?: string
+          link_url?: string | null
           revisado_em?: string | null
           revisado_por?: string | null
           status?: Database["public"]["Enums"]["creative_status"]
@@ -194,13 +199,14 @@ export type Database = {
         }
         Update: {
           arquivo_nome?: string
-          arquivo_path?: string
+          arquivo_path?: string | null
           arquivo_tipo?: string | null
           cliente_id?: string
           comentario_revisao?: string | null
           created_at?: string
           enviado_por?: string | null
           id?: string
+          link_url?: string | null
           revisado_em?: string | null
           revisado_por?: string | null
           status?: Database["public"]["Enums"]["creative_status"]
