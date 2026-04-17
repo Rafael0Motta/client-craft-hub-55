@@ -45,9 +45,14 @@ function UsuariosPage() {
   const callAdmin = async (body: object) => {
     const { data: session } = await supabase.auth.getSession();
     const token = session.session?.access_token;
+    const anon = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      headers: {
+        "Content-Type": "application/json",
+        apikey: anon,
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify(body),
     });
     const json = await res.json();
