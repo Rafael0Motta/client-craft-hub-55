@@ -278,6 +278,26 @@ function NewUserDialog({
           </Select>
         </div>
 
+        {!isCliente ? (
+          <div className="space-y-2">
+            <Label>Telefone *</Label>
+            <Input
+              value={telefone}
+              onChange={(e) => setTelefone(e.target.value)}
+              placeholder="(00) 00000-0000"
+            />
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <Label>ID do grupo *</Label>
+            <Input
+              value={grupoId}
+              onChange={(e) => setGrupoId(e.target.value)}
+              placeholder="Ex: GRP-001"
+            />
+          </div>
+        )}
+
         {isCliente && (
           <div className="border-t pt-4 space-y-4">
             <div className="text-sm font-semibold">Dados do cliente</div>
