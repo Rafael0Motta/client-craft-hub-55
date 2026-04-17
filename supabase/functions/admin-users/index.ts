@@ -29,8 +29,18 @@ interface CreateBody {
   };
 }
 interface UpdateRoleBody { action: "update_role"; user_id: string; role: Role; }
+interface UpdateUserBody {
+  action: "update_user";
+  user_id: string;
+  nome?: string;
+  email?: string;
+  password?: string | null;
+  role?: Role;
+  telefone?: string | null;
+  grupo_id?: string | null;
+}
 interface DeleteBody { action: "delete"; user_id: string; }
-type Body = CreateBody | UpdateRoleBody | DeleteBody;
+type Body = CreateBody | UpdateRoleBody | UpdateUserBody | DeleteBody;
 
 function jsonResponse(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
