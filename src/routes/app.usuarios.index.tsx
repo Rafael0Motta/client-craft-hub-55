@@ -115,6 +115,16 @@ function UsuariosPage() {
     onError: (e: Error) => toast.error("Erro", { description: e.message }),
   });
 
+  const updateUser = useMutation({
+    mutationFn: (p: object) => callAdmin({ action: "update_user", ...p }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["users-list"] });
+      setEditing(null);
+      toast.success("Usuário atualizado");
+    },
+    onError: (e: Error) => toast.error("Erro", { description: e.message }),
+  });
+
   const remove = useMutation({
     mutationFn: (user_id: string) => callAdmin({ action: "delete", user_id }),
     onSuccess: () => {
