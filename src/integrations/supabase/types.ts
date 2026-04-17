@@ -14,11 +14,40 @@ export type Database = {
   }
   public: {
     Tables: {
+      cliente_gestores: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          gestor_id: string
+          id: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          gestor_id: string
+          id?: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          gestor_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cliente_gestores_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clientes: {
         Row: {
           campanha: string | null
           created_at: string
-          gestor_id: string | null
+          drive_folder_url: string | null
           id: string
           nome: string
           segmento: string | null
@@ -28,7 +57,7 @@ export type Database = {
         Insert: {
           campanha?: string | null
           created_at?: string
-          gestor_id?: string | null
+          drive_folder_url?: string | null
           id?: string
           nome: string
           segmento?: string | null
@@ -38,7 +67,7 @@ export type Database = {
         Update: {
           campanha?: string | null
           created_at?: string
-          gestor_id?: string | null
+          drive_folder_url?: string | null
           id?: string
           nome?: string
           segmento?: string | null
@@ -72,6 +101,59 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "criativo_comentarios_criativo_id_fkey"
+            columns: ["criativo_id"]
+            isOneToOne: false
+            referencedRelation: "criativos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      criativo_versoes: {
+        Row: {
+          arquivo_nome: string
+          arquivo_path: string
+          arquivo_tipo: string | null
+          comentario_revisao: string | null
+          created_at: string
+          criativo_id: string
+          enviado_por: string | null
+          id: string
+          revisado_em: string | null
+          revisado_por: string | null
+          status: Database["public"]["Enums"]["creative_status"]
+          versao: number
+        }
+        Insert: {
+          arquivo_nome: string
+          arquivo_path: string
+          arquivo_tipo?: string | null
+          comentario_revisao?: string | null
+          created_at?: string
+          criativo_id: string
+          enviado_por?: string | null
+          id?: string
+          revisado_em?: string | null
+          revisado_por?: string | null
+          status?: Database["public"]["Enums"]["creative_status"]
+          versao: number
+        }
+        Update: {
+          arquivo_nome?: string
+          arquivo_path?: string
+          arquivo_tipo?: string | null
+          comentario_revisao?: string | null
+          created_at?: string
+          criativo_id?: string
+          enviado_por?: string | null
+          id?: string
+          revisado_em?: string | null
+          revisado_por?: string | null
+          status?: Database["public"]["Enums"]["creative_status"]
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "criativo_versoes_criativo_id_fkey"
             columns: ["criativo_id"]
             isOneToOne: false
             referencedRelation: "criativos"
