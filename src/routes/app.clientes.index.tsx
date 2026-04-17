@@ -22,6 +22,14 @@ export const Route = createFileRoute("/app/clientes/")({
   component: ClientesPage,
 });
 
+function isValidDriveUrl(url: string) {
+  if (!url) return false;
+  try {
+    const u = new URL(url);
+    return u.hostname.endsWith("google.com") && u.pathname.includes("/drive/");
+  } catch { return false; }
+}
+
 function ClientesPage() {
   const { role } = useAuth();
   const qc = useQueryClient();
@@ -32,13 +40,12 @@ function ClientesPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("clientes")
-        .select("id, nome, segmento, campanha, gestor_id, user_id")
+        .select("id, nome, segmento, campanha, user_id, drive_folder_url")
         .order("nome");
       return data ?? [];
     },
   });
 
-  // Profiles de gestores e clientes-usuário (apenas admin tem permissão SELECT geral)
   const { data: gestores } = useQuery({
     queryKey: ["profiles", "gestores"],
     enabled: role === "admin",
@@ -52,7 +59,7 @@ function ClientesPage() {
   });
 
   const { data: clientesUsers } = useQuery({
-    queryKey: ["profiles", "clientes-users"],
+    queryKey: ["profiles", "clientes-users-unbound"],
     enabled: role === "admin",
     queryFn: async () => {
       const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "cliente");
@@ -66,10 +73,27 @@ function ClientesPage() {
   const createMutation = useMutation({
     mutationFn: async (payload: {
       nome: string; segmento: string; campanha: string;
-      gestor_id: string | null; user_id: string | null;
+      drive_folder_url: string;
+      user_id: string | null;
+      gestor_ids: string[];
     }) => {
-      const { error } = await supabase.from("clientes").insert(payload);
+      const { data: cli, error } = await supabase
+        .from("clientes")
+        .insert({
+          nome: payload.nome,
+          segmento: payload.segmento || null,
+          campanha: payload.campanha || null,
+          drive_folder_url: payload.drive_folder_url,
+          user_id: payload.user_id,
+        })
+        .select("id")
+        .single();
       if (error) throw error;
+      if (payload.gestor_ids.length && cli) {
+        const links = payload.gestor_ids.map((gid) => ({ cliente_id: cli.id, gestor_id: gid }));
+        const { error: linkErr } = await supabase.from("cliente_gestores").insert(links);
+        if (linkErr) throw linkErr;
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["clientes"] });
@@ -143,17 +167,25 @@ function NewClienteDialog({
 }: {
   gestores: Array<{ id: string; nome: string; email: string }>;
   clientesUsers: Array<{ id: string; nome: string; email: string }>;
-  onSubmit: (p: { nome: string; segmento: string; campanha: string; gestor_id: string | null; user_id: string | null }) => void;
+  onSubmit: (p: { nome: string; segmento: string; campanha: string; drive_folder_url: string; user_id: string | null; gestor_ids: string[] }) => void;
   submitting: boolean;
 }) {
   const [nome, setNome] = useState("");
   const [segmento, setSegmento] = useState("");
   const [campanha, setCampanha] = useState("");
-  const [gestorId, setGestorId] = useState<string>("none");
+  const [driveUrl, setDriveUrl] = useState("");
   const [userId, setUserId] = useState<string>("none");
+  const [gestorIds, setGestorIds] = useState<string[]>([]);
+
+  const driveValid = !driveUrl || isValidDriveUrl(driveUrl);
+  const canSubmit = !!nome && !!driveUrl && driveValid && gestorIds.length > 0 && !submitting;
+
+  const toggleGestor = (id: string) => {
+    setGestorIds((p) => p.includes(id) ? p.filter((g) => g !== id) : [...p, id]);
+  };
 
   return (
-    <DialogContent className="max-w-lg">
+    <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle>Novo cliente</DialogTitle>
       </DialogHeader>
@@ -167,44 +199,57 @@ function NewClienteDialog({
           <Input value={segmento} onChange={(e) => setSegmento(e.target.value)} />
         </div>
         <div className="space-y-2">
-          <Label>Informações da campanha</Label>
-          <Textarea rows={4} value={campanha} onChange={(e) => setCampanha(e.target.value)} />
+          <Label>Pasta do Cliente (Google Drive) *</Label>
+          <Input
+            value={driveUrl}
+            onChange={(e) => setDriveUrl(e.target.value)}
+            placeholder="https://drive.google.com/drive/folders/..."
+          />
+          {driveUrl && !driveValid && (
+            <p className="text-xs text-destructive">URL do Google Drive inválida.</p>
+          )}
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-2">
-            <Label>Gestor responsável</Label>
-            <Select value={gestorId} onValueChange={setGestorId}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">— Sem gestor —</SelectItem>
-                {gestores.map((g) => (
-                  <SelectItem key={g.id} value={g.id}>{g.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Usuário-cliente (login)</Label>
-            <Select value={userId} onValueChange={setUserId}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">— Nenhum —</SelectItem>
-                {clientesUsers.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="space-y-2">
+          <Label>Informações da campanha</Label>
+          <Textarea rows={3} value={campanha} onChange={(e) => setCampanha(e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label>Gestores responsáveis * (um ou mais)</Label>
+          {gestores.length === 0 ? (
+            <p className="text-xs text-muted-foreground">Nenhum gestor cadastrado.</p>
+          ) : (
+            <div className="border rounded-md divide-y max-h-40 overflow-y-auto">
+              {gestores.map((g) => (
+                <label key={g.id} className="flex items-center gap-2 p-2 cursor-pointer hover:bg-accent text-sm">
+                  <input type="checkbox" checked={gestorIds.includes(g.id)} onChange={() => toggleGestor(g.id)} />
+                  {g.nome}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="space-y-2">
+          <Label>Usuário-cliente (login)</Label>
+          <Select value={userId} onValueChange={setUserId}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">— Nenhum —</SelectItem>
+              {clientesUsers.map((u) => (
+                <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
       <DialogFooter>
         <Button
-          disabled={!nome || submitting}
+          disabled={!canSubmit}
           onClick={() =>
             onSubmit({
               nome, segmento, campanha,
-              gestor_id: gestorId === "none" ? null : gestorId,
+              drive_folder_url: driveUrl,
               user_id: userId === "none" ? null : userId,
+              gestor_ids: gestorIds,
             })
           }
         >
