@@ -22,7 +22,7 @@ function LoginPage() {
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    const { error } = await signIn(email, password);
+    const { error } = await signIn(email.trim(), password.trim());
     setSubmitting(false);
     if (error) {
       toast.error("Falha no login", { description: error });
