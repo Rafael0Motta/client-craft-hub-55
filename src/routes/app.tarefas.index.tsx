@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader } from "@/components/AppShell";
@@ -13,12 +13,16 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { taskStatusLabels, taskStatusOrder, taskPriorityLabels } from "@/lib/labels";
 import { StatusBadge, PriorityBadge } from "@/components/StatusBadge";
-import { Plus, Calendar } from "lucide-react";
+import { Plus, Calendar, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -41,6 +45,11 @@ function TarefasPage() {
   const { role } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [statusFiltro, setStatusFiltro] = useState<string>("all");
+  const [prioridadeFiltro, setPrioridadeFiltro] = useState<string>("all");
+  const [clienteFiltro, setClienteFiltro] = useState<string>("all");
+  const [confirmDelete, setConfirmDelete] = useState<Tarefa | null>(null);
 
   const { data: tarefas, isLoading } = useQuery({
     queryKey: ["tarefas"],
@@ -62,6 +71,25 @@ function TarefasPage() {
     },
   });
 
+  const clientesParaFiltro = useMemo(() => {
+    if (clientes && clientes.length) return clientes;
+    // fallback (cliente role): deriva da própria lista de tarefas
+    const map = new Map<string, string>();
+    (tarefas ?? []).forEach((t) => t.clientes && map.set(t.cliente_id, t.clientes.nome));
+    return Array.from(map.entries()).map(([id, nome]) => ({ id, nome }));
+  }, [clientes, tarefas]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return (tarefas ?? []).filter((t) => {
+      if (q && !t.titulo.toLowerCase().includes(q)) return false;
+      if (statusFiltro !== "all" && t.status !== statusFiltro) return false;
+      if (prioridadeFiltro !== "all" && t.prioridade !== prioridadeFiltro) return false;
+      if (clienteFiltro !== "all" && t.cliente_id !== clienteFiltro) return false;
+      return true;
+    });
+  }, [tarefas, search, statusFiltro, prioridadeFiltro, clienteFiltro]);
+
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const { error } = await supabase.from("tarefas").update({ status: status as never }).eq("id", id);
@@ -69,6 +97,19 @@ function TarefasPage() {
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tarefas"] }),
     onError: (e: Error) => toast.error("Erro", { description: e.message }),
+  });
+
+  const deleteTarefa = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("tarefas").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tarefas"] });
+      qc.invalidateQueries({ queryKey: ["criativos"] });
+      toast.success("Tarefa excluída (criativos vinculados também removidos)");
+    },
+    onError: (e: Error) => toast.error("Erro ao excluir", { description: e.message }),
   });
 
   const create = useMutation({
@@ -94,6 +135,7 @@ function TarefasPage() {
   });
 
   const canCreate = role === "admin" || role === "gestor";
+  const canDelete = role === "admin" || role === "gestor";
 
   return (
     <>
@@ -116,6 +158,36 @@ function TarefasPage() {
         }
       />
 
+      <Card className="mb-4">
+        <CardContent className="p-4 grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input className="pl-9" placeholder="Buscar título…" value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          <Select value={statusFiltro} onValueChange={setStatusFiltro}>
+            <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os status</SelectItem>
+              {taskStatusOrder.map((s) => <SelectItem key={s} value={s}>{taskStatusLabels[s]}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={prioridadeFiltro} onValueChange={setPrioridadeFiltro}>
+            <SelectTrigger><SelectValue placeholder="Prioridade" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as prioridades</SelectItem>
+              {Object.entries(taskPriorityLabels).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={clienteFiltro} onValueChange={setClienteFiltro}>
+            <SelectTrigger><SelectValue placeholder="Cliente" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os clientes</SelectItem>
+              {clientesParaFiltro.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
       {isLoading ? (
         <div className="text-sm text-muted-foreground">Carregando…</div>
       ) : (
@@ -128,7 +200,7 @@ function TarefasPage() {
           <TabsContent value="kanban" className="mt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
               {taskStatusOrder.map((status) => {
-                const items = (tarefas ?? []).filter((t) => t.status === status);
+                const items = filtered.filter((t) => t.status === status);
                 return (
                   <div key={status} className="bg-muted/40 rounded-lg p-3 min-h-[200px]">
                     <div className="flex items-center justify-between mb-3 px-1">
@@ -139,7 +211,18 @@ function TarefasPage() {
                       {items.map((t) => (
                         <Card key={t.id} className="hover:shadow-md transition-shadow">
                           <CardContent className="p-3 space-y-2">
-                            <div className="font-medium text-sm leading-tight">{t.titulo}</div>
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="font-medium text-sm leading-tight">{t.titulo}</div>
+                              {canDelete && (
+                                <button
+                                  onClick={() => setConfirmDelete(t)}
+                                  className="text-muted-foreground hover:text-destructive shrink-0"
+                                  title="Excluir tarefa"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                            </div>
                             <div className="text-xs text-muted-foreground">{t.clientes?.nome ?? "—"}</div>
                             <div className="flex items-center justify-between">
                               <PriorityBadge priority={t.prioridade} />
@@ -174,7 +257,7 @@ function TarefasPage() {
             <Card>
               <CardContent className="p-0">
                 <div className="divide-y">
-                  {(tarefas ?? []).map((t) => (
+                  {filtered.map((t) => (
                     <div key={t.id} className="flex items-center justify-between p-4 gap-4">
                       <div className="min-w-0 flex-1">
                         <div className="font-medium truncate">{t.titulo}</div>
@@ -184,9 +267,14 @@ function TarefasPage() {
                       </div>
                       <PriorityBadge priority={t.prioridade} />
                       <StatusBadge status={t.status} />
+                      {canDelete && (
+                        <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(t)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
                     </div>
                   ))}
-                  {(tarefas ?? []).length === 0 && (
+                  {filtered.length === 0 && (
                     <div className="p-10 text-center text-sm text-muted-foreground">Nenhuma tarefa.</div>
                   )}
                 </div>
@@ -195,6 +283,28 @@ function TarefasPage() {
           </TabsContent>
         </Tabs>
       )}
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir tarefa?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação removerá a tarefa <strong>{confirmDelete?.titulo}</strong> e <strong>todos os criativos vinculados</strong> (incluindo versões e comentários). Não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (confirmDelete) deleteTarefa.mutate(confirmDelete.id);
+                setConfirmDelete(null);
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
