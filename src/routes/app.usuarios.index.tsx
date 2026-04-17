@@ -29,6 +29,15 @@ export const Route = createFileRoute("/app/usuarios/")({
 
 type RoleFilter = "all" | "admin" | "gestor" | "cliente";
 
+type EditUser = {
+  id: string;
+  nome: string;
+  email: string;
+  telefone: string | null;
+  grupo_id: string | null;
+  role: string | null;
+};
+
 function UsuariosPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
