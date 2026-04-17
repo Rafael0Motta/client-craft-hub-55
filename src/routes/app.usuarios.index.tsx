@@ -194,6 +194,13 @@ function UsuariosPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                  <Button size="icon" variant="ghost" onClick={() => setEditing({
+                    id: u.id, nome: u.nome, email: u.email,
+                    telefone: u.telefone ?? null, grupo_id: u.grupo_id ?? null,
+                    role: u.role ?? null,
+                  })}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
                   <Button size="icon" variant="ghost" onClick={() => {
                     if (confirm(`Remover ${u.nome}?`)) remove.mutate(u.id);
                   }}>
