@@ -219,7 +219,98 @@ function UsuariosPage() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        {editing && (
+          <EditUserDialog
+            user={editing}
+            onSubmit={(p) => updateUser.mutate({ user_id: editing.id, ...p })}
+            submitting={updateUser.isPending}
+          />
+        )}
+      </Dialog>
     </>
+  );
+}
+
+function EditUserDialog({
+  user, onSubmit, submitting,
+}: {
+  user: EditUser;
+  onSubmit: (p: object) => void;
+  submitting: boolean;
+}) {
+  const [nome, setNome] = useState(user.nome);
+  const [email, setEmail] = useState(user.email);
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState<"admin" | "gestor" | "cliente">(
+    (user.role as "admin" | "gestor" | "cliente") ?? "cliente",
+  );
+  const [telefone, setTelefone] = useState(user.telefone ?? "");
+  const [grupoId, setGrupoId] = useState(user.grupo_id ?? "");
+
+  const isCliente = role === "cliente";
+  const canSubmit = nome.trim() && email.trim() && !submitting;
+
+  const submit = () => {
+    const payload: Record<string, unknown> = {
+      nome: nome.trim(),
+      email: email.trim(),
+      role,
+      telefone: isCliente ? null : (telefone.trim() || null),
+      grupo_id: isCliente ? (grupoId.trim() || null) : null,
+    };
+    if (password.trim()) payload.password = password.trim();
+    onSubmit(payload);
+  };
+
+  return (
+    <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogHeader><DialogTitle>Editar usuário</DialogTitle></DialogHeader>
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label>Nome *</Label>
+          <Input value={nome} onChange={(e) => setNome(e.target.value)} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label>Email *</Label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Nova senha (opcional)</Label>
+            <Input type="text" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Deixe em branco" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label>Papel *</Label>
+          <Select value={role} onValueChange={(v) => setRole(v as typeof role)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {Object.entries(roleLabels).map(([v, l]) => (
+                <SelectItem key={v} value={v}>{l}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {!isCliente ? (
+          <div className="space-y-2">
+            <Label>Telefone</Label>
+            <Input value={telefone} onChange={(e) => setTelefone(e.target.value)} placeholder="(00) 00000-0000" />
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <Label>ID do grupo</Label>
+            <Input value={grupoId} onChange={(e) => setGrupoId(e.target.value)} placeholder="Ex: GRP-001" />
+          </div>
+        )}
+      </div>
+      <DialogFooter>
+        <Button disabled={!canSubmit} onClick={submit}>
+          {submitting ? "Salvando…" : "Salvar alterações"}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
   );
 }
 
