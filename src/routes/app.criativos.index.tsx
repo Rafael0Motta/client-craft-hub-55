@@ -12,7 +12,11 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Upload, Check, X, MessageSquare, FileIcon, History, Link as LinkIcon, ExternalLink } from "lucide-react";
+import { Upload, Check, X, MessageSquare, FileIcon, History, Link as LinkIcon, ExternalLink, Trash2 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/criativos/")({
@@ -198,6 +202,18 @@ function CriativosPage() {
     onError: (e: Error) => toast.error("Erro", { description: e.message }),
   });
 
+  const deleteCriativo = useMutation({
+    mutationFn: async (criativoId: string) => {
+      const { error } = await supabase.from("criativos").delete().eq("id", criativoId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["criativos"] });
+      toast.success("Criativo excluído");
+    },
+    onError: (e: Error) => toast.error("Erro ao excluir", { description: e.message }),
+  });
+
   return (
     <>
       <PageHeader
@@ -311,15 +327,23 @@ function CriativosPage() {
       )}
 
       <div className="space-y-3">
-        {(criativos ?? []).map((c) => (
-          <CriativoCard
-            key={c.id}
-            criativo={c}
-            canReview={role === "admin" || role === "gestor"}
-            onApprove={(versaoId) => review.mutate({ versaoId, status: "aprovado" })}
-            onReject={(versaoId, comentario) => review.mutate({ versaoId, status: "reprovado", comentario })}
-          />
-        ))}
+        {(criativos ?? []).map((c) => {
+          const canDelete =
+            role === "admin" ||
+            role === "gestor" ||
+            (role === "cliente" && c.status === "pendente_aprovacao");
+          return (
+            <CriativoCard
+              key={c.id}
+              criativo={c}
+              canReview={role === "admin" || role === "gestor"}
+              canDelete={canDelete}
+              onApprove={(versaoId) => review.mutate({ versaoId, status: "aprovado" })}
+              onReject={(versaoId, comentario) => review.mutate({ versaoId, status: "reprovado", comentario })}
+              onDelete={(id) => deleteCriativo.mutate(id)}
+            />
+          );
+        })}
         {(criativos ?? []).length === 0 && (
           <Card>
             <CardContent className="py-12 text-center text-muted-foreground">
@@ -333,12 +357,14 @@ function CriativosPage() {
 }
 
 function CriativoCard({
-  criativo, canReview, onApprove, onReject,
+  criativo, canReview, canDelete, onApprove, onReject, onDelete,
 }: {
   criativo: Criativo;
   canReview: boolean;
+  canDelete: boolean;
   onApprove: (versaoId: string) => void;
   onReject: (versaoId: string, comentario: string) => void;
+  onDelete: (criativoId: string) => void;
 }) {
   const { user } = useAuth();
   const [showReject, setShowReject] = useState(false);
@@ -469,6 +495,27 @@ function CriativoCard({
               <Button size="sm" variant="outline" onClick={() => setShowComments((s) => !s)}>
                 <MessageSquare className="h-4 w-4 mr-1" /> Comentários
               </Button>
+              {canDelete && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive">
+                      <Trash2 className="h-4 w-4 mr-1" /> Excluir
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Excluir criativo?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Esta ação removerá o criativo <strong>{arquivoNome}</strong> e <strong>todas as suas versões e comentários</strong>. A tarefa permanece intacta. Não pode ser desfeita.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => onDelete(criativo.id)}>Excluir</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
             </div>
 
             {showReject && versaoAtual && (

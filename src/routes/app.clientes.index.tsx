@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader } from "@/components/AppShell";
@@ -15,7 +15,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Plus, ArrowRight, Users } from "lucide-react";
+import { Plus, ArrowRight, Users, Search, UserCog } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/clientes/")({
@@ -30,10 +30,18 @@ function isValidDriveUrl(url: string) {
   } catch { return false; }
 }
 
+type ClienteRow = {
+  id: string; nome: string; segmento: string | null;
+  campanha: string | null; user_id: string | null; drive_folder_url: string | null;
+};
+
 function ClientesPage() {
   const { role } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [segmentoFiltro, setSegmentoFiltro] = useState<string>("all");
+  const [gestorFiltro, setGestorFiltro] = useState<string>("all");
 
   const { data: clientes, isLoading } = useQuery({
     queryKey: ["clientes"],
@@ -42,7 +50,27 @@ function ClientesPage() {
         .from("clientes")
         .select("id, nome, segmento, campanha, user_id, drive_folder_url")
         .order("nome");
-      return data ?? [];
+      return (data ?? []) as ClienteRow[];
+    },
+  });
+
+  // Vínculos cliente↔gestor + nomes dos gestores p/ exibir nos cards e filtrar
+  const { data: vinculos } = useQuery({
+    queryKey: ["cliente-gestores-com-nome"],
+    queryFn: async () => {
+      const { data: links } = await supabase.from("cliente_gestores").select("cliente_id, gestor_id");
+      const ids = Array.from(new Set((links ?? []).map((l) => l.gestor_id)));
+      const { data: profs } = ids.length
+        ? await supabase.from("profiles").select("id, nome").in("id", ids)
+        : { data: [] as Array<{ id: string; nome: string }> };
+      const nomeById = new Map((profs ?? []).map((p) => [p.id, p.nome]));
+      const byCliente = new Map<string, Array<{ id: string; nome: string }>>();
+      (links ?? []).forEach((l) => {
+        const arr = byCliente.get(l.cliente_id) ?? [];
+        arr.push({ id: l.gestor_id, nome: nomeById.get(l.gestor_id) ?? "—" });
+        byCliente.set(l.cliente_id, arr);
+      });
+      return { byCliente, all: profs ?? [] };
     },
   });
 
@@ -69,6 +97,32 @@ function ClientesPage() {
       return data ?? [];
     },
   });
+
+  const segmentos = useMemo(() => {
+    const s = new Set<string>();
+    (clientes ?? []).forEach((c) => c.segmento && s.add(c.segmento));
+    return Array.from(s).sort();
+  }, [clientes]);
+
+  const gestoresFiltro = useMemo(() => {
+    // Gestores que aparecem em algum vínculo
+    const map = new Map<string, string>();
+    vinculos?.byCliente.forEach((arr) => arr.forEach((g) => map.set(g.id, g.nome)));
+    return Array.from(map.entries()).map(([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [vinculos]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return (clientes ?? []).filter((c) => {
+      if (q && !c.nome.toLowerCase().includes(q)) return false;
+      if (segmentoFiltro !== "all" && c.segmento !== segmentoFiltro) return false;
+      if (gestorFiltro !== "all") {
+        const gs = vinculos?.byCliente.get(c.id) ?? [];
+        if (!gs.some((g) => g.id === gestorFiltro)) return false;
+      }
+      return true;
+    });
+  }, [clientes, vinculos, search, segmentoFiltro, gestorFiltro]);
 
   const createMutation = useMutation({
     mutationFn: async (payload: {
@@ -97,6 +151,7 @@ function ClientesPage() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["clientes"] });
+      qc.invalidateQueries({ queryKey: ["cliente-gestores-com-nome"] });
       setOpen(false);
       toast.success("Cliente criado");
     },
@@ -125,37 +180,81 @@ function ClientesPage() {
         }
       />
 
+      <Card className="mb-4">
+        <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              className="pl-9"
+              placeholder="Buscar por nome…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <Select value={segmentoFiltro} onValueChange={setSegmentoFiltro}>
+            <SelectTrigger><SelectValue placeholder="Segmento" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os segmentos</SelectItem>
+              {segmentos.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={gestorFiltro} onValueChange={setGestorFiltro}>
+            <SelectTrigger><SelectValue placeholder="Gestor" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os gestores</SelectItem>
+              {gestoresFiltro.map((g) => <SelectItem key={g.id} value={g.id}>{g.nome}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
       {isLoading ? (
         <div className="text-sm text-muted-foreground">Carregando…</div>
-      ) : (clientes ?? []).length === 0 ? (
+      ) : filtered.length === 0 ? (
         <Card>
           <CardContent className="py-16 text-center text-muted-foreground">
             <Users className="h-10 w-10 mx-auto mb-3 opacity-50" />
-            <p>Nenhum cliente {role === "admin" ? "cadastrado" : "atribuído"} ainda.</p>
+            <p>Nenhum cliente encontrado.</p>
           </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {(clientes ?? []).map((c) => (
-            <Link key={c.id} to="/app/clientes/$id" params={{ id: c.id }}>
-              <Card className="hover:border-primary transition-colors cursor-pointer h-full">
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-semibold text-lg leading-tight">{c.nome}</h3>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                  {c.segmento && (
-                    <div className="text-xs uppercase tracking-wider text-brand font-semibold">
-                      {c.segmento}
+          {filtered.map((c) => {
+            const gs = vinculos?.byCliente.get(c.id) ?? [];
+            const principal = gs[0];
+            const extras = gs.length - 1;
+            return (
+              <Link key={c.id} to="/app/clientes/$id" params={{ id: c.id }}>
+                <Card className="hover:border-primary transition-colors cursor-pointer h-full">
+                  <CardContent className="p-5">
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="font-semibold text-lg leading-tight">{c.nome}</h3>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
                     </div>
-                  )}
-                  {c.campanha && (
-                    <p className="text-sm text-muted-foreground mt-3 line-clamp-2">{c.campanha}</p>
-                  )}
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+                    {c.segmento && (
+                      <div className="text-xs uppercase tracking-wider text-brand font-semibold">
+                        {c.segmento}
+                      </div>
+                    )}
+                    <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                      <UserCog className="h-3.5 w-3.5" />
+                      {principal ? (
+                        <span className="truncate">
+                          {principal.nome}
+                          {extras > 0 && <span className="ml-1 text-brand font-semibold">+{extras}</span>}
+                        </span>
+                      ) : (
+                        <span className="italic">Sem gestor</span>
+                      )}
+                    </div>
+                    {c.campanha && (
+                      <p className="text-sm text-muted-foreground mt-3 line-clamp-2">{c.campanha}</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
       )}
     </>
