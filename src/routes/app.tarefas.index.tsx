@@ -64,7 +64,7 @@ function TarefasPage() {
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await supabase.from("tarefas").update({ status: status as Tarefa["status"] }).eq("id", id);
+      const { error } = await supabase.from("tarefas").update({ status: status as never }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tarefas"] }),
@@ -80,9 +80,9 @@ function TarefasPage() {
         cliente_id: p.cliente_id,
         titulo: p.titulo,
         descricao: p.descricao,
-        prioridade: p.prioridade as Tarefa["prioridade"],
+        prioridade: p.prioridade as never,
         prazo: p.prazo,
-      });
+      } as never);
       if (error) throw error;
     },
     onSuccess: () => {
