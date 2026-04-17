@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -212,10 +212,16 @@ function TarefasPage() {
                         <Card key={t.id} className="hover:shadow-md transition-shadow">
                           <CardContent className="p-3 space-y-2">
                             <div className="flex items-start justify-between gap-2">
-                              <div className="font-medium text-sm leading-tight">{t.titulo}</div>
+                              <Link
+                                to="/app/tarefas/$id"
+                                params={{ id: t.id }}
+                                className="font-medium text-sm leading-tight hover:underline flex-1 min-w-0"
+                              >
+                                {t.titulo}
+                              </Link>
                               {canDelete && (
                                 <button
-                                  onClick={() => setConfirmDelete(t)}
+                                  onClick={(e) => { e.preventDefault(); setConfirmDelete(t); }}
                                   className="text-muted-foreground hover:text-destructive shrink-0"
                                   title="Excluir tarefa"
                                 >
@@ -258,13 +264,13 @@ function TarefasPage() {
               <CardContent className="p-0">
                 <div className="divide-y">
                   {filtered.map((t) => (
-                    <div key={t.id} className="flex items-center justify-between p-4 gap-4">
-                      <div className="min-w-0 flex-1">
-                        <div className="font-medium truncate">{t.titulo}</div>
+                    <div key={t.id} className="flex items-center justify-between p-4 gap-4 hover:bg-muted/40 transition-colors">
+                      <Link to="/app/tarefas/$id" params={{ id: t.id }} className="min-w-0 flex-1">
+                        <div className="font-medium truncate hover:underline">{t.titulo}</div>
                         <div className="text-xs text-muted-foreground truncate">
                           {t.clientes?.nome ?? "—"} {t.prazo ? `· prazo ${t.prazo}` : ""}
                         </div>
-                      </div>
+                      </Link>
                       <PriorityBadge priority={t.prioridade} />
                       <StatusBadge status={t.status} />
                       {canDelete && (
