@@ -116,6 +116,7 @@ export type Database = {
           comentario_revisao: string | null
           created_at: string
           criativo_id: string
+          descricao: string | null
           enviado_por: string | null
           id: string
           link_url: string | null
@@ -131,6 +132,7 @@ export type Database = {
           comentario_revisao?: string | null
           created_at?: string
           criativo_id: string
+          descricao?: string | null
           enviado_por?: string | null
           id?: string
           link_url?: string | null
@@ -146,6 +148,7 @@ export type Database = {
           comentario_revisao?: string | null
           created_at?: string
           criativo_id?: string
+          descricao?: string | null
           enviado_por?: string | null
           id?: string
           link_url?: string | null
@@ -172,6 +175,7 @@ export type Database = {
           cliente_id: string
           comentario_revisao: string | null
           created_at: string
+          descricao: string | null
           enviado_por: string | null
           id: string
           link_url: string | null
@@ -188,6 +192,7 @@ export type Database = {
           cliente_id: string
           comentario_revisao?: string | null
           created_at?: string
+          descricao?: string | null
           enviado_por?: string | null
           id?: string
           link_url?: string | null
@@ -204,6 +209,7 @@ export type Database = {
           cliente_id?: string
           comentario_revisao?: string | null
           created_at?: string
+          descricao?: string | null
           enviado_por?: string | null
           id?: string
           link_url?: string | null
