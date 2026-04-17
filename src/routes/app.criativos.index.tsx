@@ -12,7 +12,11 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Upload, Check, X, MessageSquare, FileIcon, History, Link as LinkIcon, ExternalLink } from "lucide-react";
+import { Upload, Check, X, MessageSquare, FileIcon, History, Link as LinkIcon, ExternalLink, Trash2 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/criativos/")({
