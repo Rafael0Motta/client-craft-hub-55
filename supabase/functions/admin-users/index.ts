@@ -29,8 +29,18 @@ interface CreateBody {
   };
 }
 interface UpdateRoleBody { action: "update_role"; user_id: string; role: Role; }
+interface UpdateUserBody {
+  action: "update_user";
+  user_id: string;
+  nome?: string;
+  email?: string;
+  password?: string | null;
+  role?: Role;
+  telefone?: string | null;
+  grupo_id?: string | null;
+}
 interface DeleteBody { action: "delete"; user_id: string; }
-type Body = CreateBody | UpdateRoleBody | DeleteBody;
+type Body = CreateBody | UpdateRoleBody | UpdateUserBody | DeleteBody;
 
 function jsonResponse(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -146,6 +156,36 @@ Deno.serve(async (req) => {
     if (body.action === "update_role") {
       await admin.from("user_roles").delete().eq("user_id", body.user_id);
       await admin.from("user_roles").insert({ user_id: body.user_id, role: body.role });
+      return jsonResponse({ ok: true });
+    }
+
+    if (body.action === "update_user") {
+      // Atualiza auth (email/senha) se fornecidos
+      const authUpdate: { email?: string; password?: string } = {};
+      if (body.email) authUpdate.email = body.email;
+      if (body.password) authUpdate.password = body.password;
+      if (Object.keys(authUpdate).length > 0) {
+        const { error: authErr } = await admin.auth.admin.updateUserById(body.user_id, authUpdate);
+        if (authErr) return jsonResponse({ error: authErr.message }, 400);
+      }
+
+      // Atualiza profile
+      const profileUpdate: Record<string, unknown> = {};
+      if (body.nome !== undefined) profileUpdate.nome = body.nome;
+      if (body.email !== undefined) profileUpdate.email = body.email;
+      if (body.telefone !== undefined) profileUpdate.telefone = body.telefone;
+      if (body.grupo_id !== undefined) profileUpdate.grupo_id = body.grupo_id;
+      if (Object.keys(profileUpdate).length > 0) {
+        const { error: pErr } = await admin.from("profiles").update(profileUpdate).eq("id", body.user_id);
+        if (pErr) return jsonResponse({ error: pErr.message }, 400);
+      }
+
+      // Atualiza role se fornecida
+      if (body.role) {
+        await admin.from("user_roles").delete().eq("user_id", body.user_id);
+        await admin.from("user_roles").insert({ user_id: body.user_id, role: body.role });
+      }
+
       return jsonResponse({ ok: true });
     }
 
