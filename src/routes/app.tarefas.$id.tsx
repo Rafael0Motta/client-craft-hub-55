@@ -83,9 +83,19 @@ function TarefaDetalhePage() {
 
       <Card className="mb-6">
         <CardContent className="p-5 space-y-4">
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={tarefa.status} />
             <PriorityBadge priority={tarefa.prioridade} />
+            {tarefa.tipos_tarefa?.nome && (
+              <span className="text-[11px] px-2 py-0.5 rounded bg-primary/10 text-primary font-semibold uppercase tracking-wider">
+                {tarefa.tipos_tarefa.nome}
+              </span>
+            )}
+            {tarefa.funil && (
+              <span className="text-[11px] px-2 py-0.5 rounded bg-accent text-accent-foreground font-semibold uppercase tracking-wider">
+                Funil: {tarefa.funil}
+              </span>
+            )}
           </div>
 
           {tarefa.descricao && (
@@ -122,10 +132,18 @@ function TarefaDetalhePage() {
 
       <div className="mb-3">
         <h2 className="text-lg font-semibold">Criativos vinculados</h2>
-        <p className="text-sm text-muted-foreground">Envie e acompanhe os criativos desta tarefa.</p>
+        <p className="text-sm text-muted-foreground">
+          {tarefa.tipos_tarefa?.nome?.toLowerCase() === "criativo"
+            ? "Tarefas do tipo Criativo aceitam apenas links (URLs)."
+            : "Envie e acompanhe os criativos desta tarefa."}
+        </p>
       </div>
 
-      <CriativosSection tarefaId={tarefa.id} clienteId={tarefa.cliente_id} />
+      <CriativosSection
+        tarefaId={tarefa.id}
+        clienteId={tarefa.cliente_id}
+        tipoTarefaNome={tarefa.tipos_tarefa?.nome ?? null}
+      />
     </>
   );
 }
