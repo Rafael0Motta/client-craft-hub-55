@@ -150,6 +150,7 @@ export function CriativosSection({
         <EnvioCriativoForm
           tarefaIdFixo={tarefaId}
           clienteId={clienteId!}
+          tipoTarefaNome={tipoTarefaNome}
           onSent={() => {
             qc.invalidateQueries({ queryKey });
             qc.invalidateQueries({ queryKey: ["criativos"] });
@@ -194,15 +195,19 @@ function EnvioCriativoForm({
   tarefaIdFixo,
   clienteId,
   onSent,
+  tipoTarefaNome = null,
 }: {
   tarefaIdFixo?: string;
   clienteId: string;
   onSent: () => void;
+  tipoTarefaNome?: string | null;
 }) {
   const { user, role } = useAuth();
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploadMode, setUploadMode] = useState<UploadMode>("novo");
-  const [sourceMode, setSourceMode] = useState<SourceMode>("arquivo");
+  // Quando a tarefa é do tipo Criativo, força o modo "link" (sem upload).
+  const isCriativoTipo = (tipoTarefaNome ?? "").toLowerCase() === "criativo";
+  const [sourceMode, setSourceMode] = useState<SourceMode>(isCriativoTipo ? "link" : "arquivo");
   const [tarefaId, setTarefaId] = useState(tarefaIdFixo ?? "");
   const [criativoAlvoId, setCriativoAlvoId] = useState("");
   const [descricao, setDescricao] = useState("");
@@ -210,16 +215,25 @@ function EnvioCriativoForm({
   const [linkNome, setLinkNome] = useState("");
   const [uploading, setUploading] = useState(false);
 
+  // Para tarefa global (sem tarefaIdFixo), busca tipo da tarefa selecionada
   const { data: tarefasCliente } = useQuery({
     queryKey: ["tarefas-cliente-form", clienteId],
     enabled: !tarefaIdFixo && role === "cliente",
     queryFn: async () => {
-      const { data } = await supabase.from("tarefas").select("id, titulo").eq("cliente_id", clienteId);
-      return data ?? [];
+      const { data } = await supabase
+        .from("tarefas")
+        .select("id, titulo, tipos_tarefa(nome)")
+        .eq("cliente_id", clienteId);
+      return (data ?? []) as unknown as Array<{ id: string; titulo: string; tipos_tarefa: { nome: string } | null }>;
     },
   });
 
   const tarefaAtiva = tarefaIdFixo ?? tarefaId;
+
+  // Determina se a tarefa selecionada (no modo global) é do tipo Criativo
+  const tarefaSelecionada = tarefasCliente?.find((t) => t.id === tarefaId);
+  const isCriativoEffective =
+    isCriativoTipo || (tarefaSelecionada?.tipos_tarefa?.nome ?? "").toLowerCase() === "criativo";
 
   const { data: criativosDaTarefa } = useQuery({
     queryKey: ["criativos-tarefa-form", tarefaAtiva],
