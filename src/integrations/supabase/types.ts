@@ -182,6 +182,7 @@ export type Database = {
           revisado_em: string | null
           revisado_por: string | null
           status: Database["public"]["Enums"]["creative_status"]
+          status_operacional: Database["public"]["Enums"]["creative_op_status"]
           tarefa_id: string
           updated_at: string
         }
@@ -199,6 +200,7 @@ export type Database = {
           revisado_em?: string | null
           revisado_por?: string | null
           status?: Database["public"]["Enums"]["creative_status"]
+          status_operacional?: Database["public"]["Enums"]["creative_op_status"]
           tarefa_id: string
           updated_at?: string
         }
@@ -216,6 +218,7 @@ export type Database = {
           revisado_em?: string | null
           revisado_por?: string | null
           status?: Database["public"]["Enums"]["creative_status"]
+          status_operacional?: Database["public"]["Enums"]["creative_op_status"]
           tarefa_id?: string
           updated_at?: string
         }
@@ -241,24 +244,30 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           email: string
+          grupo_id: string | null
           id: string
           nome: string
+          telefone: string | null
           updated_at: string
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
           email: string
+          grupo_id?: string | null
           id: string
           nome: string
+          telefone?: string | null
           updated_at?: string
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
           email?: string
+          grupo_id?: string | null
           id?: string
           nome?: string
+          telefone?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -269,10 +278,12 @@ export type Database = {
           created_at: string
           criado_por: string | null
           descricao: string | null
+          funil: Database["public"]["Enums"]["funil_classificacao"] | null
           id: string
           prazo: string | null
           prioridade: Database["public"]["Enums"]["task_priority"]
           status: Database["public"]["Enums"]["task_status"]
+          tipo_tarefa_id: string | null
           titulo: string
           updated_at: string
         }
@@ -281,10 +292,12 @@ export type Database = {
           created_at?: string
           criado_por?: string | null
           descricao?: string | null
+          funil?: Database["public"]["Enums"]["funil_classificacao"] | null
           id?: string
           prazo?: string | null
           prioridade?: Database["public"]["Enums"]["task_priority"]
           status?: Database["public"]["Enums"]["task_status"]
+          tipo_tarefa_id?: string | null
           titulo: string
           updated_at?: string
         }
@@ -293,10 +306,12 @@ export type Database = {
           created_at?: string
           criado_por?: string | null
           descricao?: string | null
+          funil?: Database["public"]["Enums"]["funil_classificacao"] | null
           id?: string
           prazo?: string | null
           prioridade?: Database["public"]["Enums"]["task_priority"]
           status?: Database["public"]["Enums"]["task_status"]
+          tipo_tarefa_id?: string | null
           titulo?: string
           updated_at?: string
         }
@@ -308,7 +323,35 @@ export type Database = {
             referencedRelation: "clientes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "tarefas_tipo_tarefa_id_fkey"
+            columns: ["tipo_tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "tipos_tarefa"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      tipos_tarefa: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          id: string
+          nome: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          nome: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          nome?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -358,7 +401,9 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "gestor" | "cliente"
+      creative_op_status: "ativo" | "desativado" | "standby"
       creative_status: "pendente_aprovacao" | "aprovado" | "reprovado"
+      funil_classificacao: "topo" | "meio" | "fundo"
       task_priority: "baixa" | "media" | "alta" | "urgente"
       task_status:
         | "pendente"
@@ -493,7 +538,9 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "gestor", "cliente"],
+      creative_op_status: ["ativo", "desativado", "standby"],
       creative_status: ["pendente_aprovacao", "aprovado", "reprovado"],
+      funil_classificacao: ["topo", "meio", "fundo"],
       task_priority: ["baixa", "media", "alta", "urgente"],
       task_status: [
         "pendente",
