@@ -202,6 +202,18 @@ function CriativosPage() {
     onError: (e: Error) => toast.error("Erro", { description: e.message }),
   });
 
+  const deleteCriativo = useMutation({
+    mutationFn: async (criativoId: string) => {
+      const { error } = await supabase.from("criativos").delete().eq("id", criativoId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["criativos"] });
+      toast.success("Criativo excluído");
+    },
+    onError: (e: Error) => toast.error("Erro ao excluir", { description: e.message }),
+  });
+
   return (
     <>
       <PageHeader
