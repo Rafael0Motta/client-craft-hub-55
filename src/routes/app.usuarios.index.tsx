@@ -207,6 +207,8 @@ function NewUserDialog({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<"admin" | "gestor" | "cliente">("cliente");
+  const [telefone, setTelefone] = useState("");
+  const [grupoId, setGrupoId] = useState("");
 
   // Campos extras p/ cliente
   const [clienteNome, setClienteNome] = useState("");
@@ -221,15 +223,20 @@ function NewUserDialog({
   })();
 
   const baseValid = nome && email && password;
+  const roleSpecificValid = isCliente ? !!grupoId.trim() : !!telefone.trim();
   const clienteValid = !isCliente || (clienteNome && driveUrl && driveValid && gestorIds.length > 0);
-  const canSubmit = baseValid && clienteValid && !submitting;
+  const canSubmit = baseValid && roleSpecificValid && clienteValid && !submitting;
 
   const toggleGestor = (id: string) => {
     setGestorIds((prev) => prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id]);
   };
 
   const submit = () => {
-    const payload: Record<string, unknown> = { nome, email, password, role };
+    const payload: Record<string, unknown> = {
+      nome, email, password, role,
+      telefone: isCliente ? null : telefone.trim(),
+      grupo_id: isCliente ? grupoId.trim() : null,
+    };
     if (isCliente) {
       payload.cliente = {
         nome: clienteNome,

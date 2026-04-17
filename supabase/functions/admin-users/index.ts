@@ -16,6 +16,10 @@ interface CreateBody {
   password: string;
   nome: string;
   role: Role;
+  // Campo opcional para admin/gestor
+  telefone?: string | null;
+  // Campo opcional para cliente
+  grupo_id?: string | null;
   // Quando role = "cliente", obrigatório:
   cliente?: {
     nome: string;
@@ -101,7 +105,13 @@ Deno.serve(async (req) => {
 
       const newUserId = created.user.id;
 
-      await admin.from("profiles").upsert({ id: newUserId, nome: body.nome, email: body.email });
+      await admin.from("profiles").upsert({
+        id: newUserId,
+        nome: body.nome,
+        email: body.email,
+        telefone: body.role === "cliente" ? null : (body.telefone ?? null),
+        grupo_id: body.role === "cliente" ? (body.grupo_id ?? null) : null,
+      });
       await admin.from("user_roles").insert({ user_id: newUserId, role: body.role });
 
       let cliente_id: string | null = null;
