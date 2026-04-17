@@ -44,7 +44,7 @@ function TarefaDetalhePage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tarefas")
-        .select("id, titulo, descricao, status, prioridade, prazo, cliente_id, created_at, criado_por, clientes(nome), profiles!criado_por(nome)")
+        .select("id, titulo, descricao, status, prioridade, prazo, cliente_id, created_at, criado_por, tipo_tarefa_id, funil, clientes(nome), tipos_tarefa(nome), profiles!criado_por(nome)")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
@@ -52,7 +52,9 @@ function TarefaDetalhePage() {
         id: string; titulo: string; descricao: string | null;
         status: string; prioridade: string; prazo: string | null;
         cliente_id: string; created_at: string;
+        tipo_tarefa_id: string | null; funil: string | null;
         clientes: { nome: string } | null;
+        tipos_tarefa: { nome: string } | null;
         profiles: { nome: string } | null;
       } | null;
     },
