@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/AppShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ExternalLink, FolderOpen } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 
 export const Route = createFileRoute("/app/clientes/$id")({
@@ -22,12 +22,20 @@ function ClienteDetailPage() {
     },
   });
 
-  const { data: gestor } = useQuery({
-    queryKey: ["cliente-gestor", cliente?.gestor_id],
-    enabled: !!cliente?.gestor_id,
+  const { data: gestores } = useQuery({
+    queryKey: ["cliente-gestores", id],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("nome, email").eq("id", cliente!.gestor_id!).maybeSingle();
-      return data;
+      const { data: links } = await supabase
+        .from("cliente_gestores")
+        .select("gestor_id")
+        .eq("cliente_id", id);
+      const ids = (links ?? []).map((l) => l.gestor_id);
+      if (!ids.length) return [];
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("id, nome, email")
+        .in("id", ids);
+      return profs ?? [];
     },
   });
 
@@ -71,13 +79,35 @@ function ClienteDetailPage() {
           <CardHeader><CardTitle className="text-base">Detalhes</CardTitle></CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div>
-              <div className="text-xs uppercase tracking-wider text-muted-foreground">Gestor</div>
-              <div className="font-medium">{gestor?.nome ?? "Não atribuído"}</div>
+              <div className="text-xs uppercase tracking-wider text-muted-foreground">Gestores</div>
+              {(gestores ?? []).length === 0 ? (
+                <div className="font-medium">Não atribuído</div>
+              ) : (
+                <ul className="font-medium space-y-0.5">
+                  {(gestores ?? []).map((g) => (
+                    <li key={g.id}>{g.nome}</li>
+                  ))}
+                </ul>
+              )}
             </div>
             <div>
               <div className="text-xs uppercase tracking-wider text-muted-foreground">Segmento</div>
               <div className="font-medium">{cliente.segmento ?? "—"}</div>
             </div>
+            {cliente.drive_folder_url && (
+              <div>
+                <div className="text-xs uppercase tracking-wider text-muted-foreground">Pasta Drive</div>
+                <a
+                  href={cliente.drive_folder_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 text-primary hover:underline font-medium break-all"
+                >
+                  <FolderOpen className="h-4 w-4 shrink-0" /> Abrir pasta
+                  <ExternalLink className="h-3 w-3 shrink-0" />
+                </a>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
