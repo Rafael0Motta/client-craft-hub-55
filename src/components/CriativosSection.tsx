@@ -35,11 +35,12 @@ export type CriativoRow = {
   link_url: string | null;
   descricao: string | null;
   status: string;
+  status_operacional: string;
   comentario_revisao: string | null;
   enviado_por: string | null;
   created_at: string;
   clientes?: { nome: string } | null;
-  tarefas?: { titulo: string } | null;
+  tarefas?: { titulo: string; tipos_tarefa?: { nome: string } | null } | null;
   profiles?: { nome: string } | null;
 };
 
@@ -80,10 +81,13 @@ export function CriativosSection({
   tarefaId,
   clienteId: clienteIdProp,
   showSenderForm = true,
+  tipoTarefaNome = null,
 }: {
   tarefaId?: string;
   clienteId?: string;
   showSenderForm?: boolean;
+  /** Quando o tipo da tarefa for "Criativo", o envio aceita apenas link (sem upload). */
+  tipoTarefaNome?: string | null;
 }) {
   const { role, user, clienteId: clienteIdCtx } = useAuth();
   const qc = useQueryClient();
@@ -97,7 +101,7 @@ export function CriativosSection({
       let q = supabase
         .from("criativos")
         .select(
-          "id, tarefa_id, cliente_id, arquivo_path, arquivo_nome, arquivo_tipo, link_url, descricao, status, comentario_revisao, enviado_por, created_at, clientes(nome), tarefas(titulo), profiles!enviado_por(nome)"
+          "id, tarefa_id, cliente_id, arquivo_path, arquivo_nome, arquivo_tipo, link_url, descricao, status, status_operacional, comentario_revisao, enviado_por, created_at, clientes(nome), tarefas(titulo, tipos_tarefa(nome)), profiles!enviado_por(nome)"
         )
         .order("created_at", { ascending: false });
       if (tarefaId) q = q.eq("tarefa_id", tarefaId);
