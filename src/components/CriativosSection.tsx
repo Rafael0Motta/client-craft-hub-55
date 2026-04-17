@@ -402,7 +402,7 @@ function EnvioCriativoForm({
           />
         </div>
 
-        {sourceMode === "link" ? (
+        {(sourceMode === "link" || isCriativoEffective) ? (
           <div className="space-y-3">
             <Input placeholder="Cole o link (https://drive.google.com/...)" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} />
             <Input placeholder="Nome de exibição (opcional)" value={linkNome} onChange={(e) => setLinkNome(e.target.value)} />
