@@ -13,6 +13,8 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppClientesIndexRouteImport } from './routes/app.clientes.index'
+import { Route as AppClientesIdRouteImport } from './routes/app.clientes.$id'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -34,17 +36,31 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppClientesIndexRoute = AppClientesIndexRouteImport.update({
+  id: '/clientes/',
+  path: '/clientes/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppClientesIdRoute = AppClientesIdRouteImport.update({
+  id: '/clientes/$id',
+  path: '/clientes/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/app/': typeof AppIndexRoute
+  '/app/clientes/$id': typeof AppClientesIdRoute
+  '/app/clientes/': typeof AppClientesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/app': typeof AppIndexRoute
+  '/app/clientes/$id': typeof AppClientesIdRoute
+  '/app/clientes': typeof AppClientesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -52,13 +68,28 @@ export interface FileRoutesById {
   '/app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/app/': typeof AppIndexRoute
+  '/app/clientes/$id': typeof AppClientesIdRoute
+  '/app/clientes/': typeof AppClientesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/app' | '/login' | '/app/'
+  fullPaths:
+    | '/'
+    | '/app'
+    | '/login'
+    | '/app/'
+    | '/app/clientes/$id'
+    | '/app/clientes/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/app'
-  id: '__root__' | '/' | '/app' | '/login' | '/app/'
+  to: '/' | '/login' | '/app' | '/app/clientes/$id' | '/app/clientes'
+  id:
+    | '__root__'
+    | '/'
+    | '/app'
+    | '/login'
+    | '/app/'
+    | '/app/clientes/$id'
+    | '/app/clientes/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -97,15 +128,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/clientes/': {
+      id: '/app/clientes/'
+      path: '/clientes'
+      fullPath: '/app/clientes/'
+      preLoaderRoute: typeof AppClientesIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/clientes/$id': {
+      id: '/app/clientes/$id'
+      path: '/clientes/$id'
+      fullPath: '/app/clientes/$id'
+      preLoaderRoute: typeof AppClientesIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
+  AppClientesIdRoute: typeof AppClientesIdRoute
+  AppClientesIndexRoute: typeof AppClientesIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppIndexRoute: AppIndexRoute,
+  AppClientesIdRoute: AppClientesIdRoute,
+  AppClientesIndexRoute: AppClientesIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
