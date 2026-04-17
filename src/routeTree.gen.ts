@@ -13,7 +13,9 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppUsuariosIndexRouteImport } from './routes/app.usuarios.index'
 import { Route as AppTarefasIndexRouteImport } from './routes/app.tarefas.index'
+import { Route as AppCriativosIndexRouteImport } from './routes/app.criativos.index'
 import { Route as AppClientesIndexRouteImport } from './routes/app.clientes.index'
 import { Route as AppClientesIdRouteImport } from './routes/app.clientes.$id'
 
@@ -37,9 +39,19 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppUsuariosIndexRoute = AppUsuariosIndexRouteImport.update({
+  id: '/usuarios/',
+  path: '/usuarios/',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppTarefasIndexRoute = AppTarefasIndexRouteImport.update({
   id: '/tarefas/',
   path: '/tarefas/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCriativosIndexRoute = AppCriativosIndexRouteImport.update({
+  id: '/criativos/',
+  path: '/criativos/',
   getParentRoute: () => AppRoute,
 } as any)
 const AppClientesIndexRoute = AppClientesIndexRouteImport.update({
@@ -60,7 +72,9 @@ export interface FileRoutesByFullPath {
   '/app/': typeof AppIndexRoute
   '/app/clientes/$id': typeof AppClientesIdRoute
   '/app/clientes/': typeof AppClientesIndexRoute
+  '/app/criativos/': typeof AppCriativosIndexRoute
   '/app/tarefas/': typeof AppTarefasIndexRoute
+  '/app/usuarios/': typeof AppUsuariosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -68,7 +82,9 @@ export interface FileRoutesByTo {
   '/app': typeof AppIndexRoute
   '/app/clientes/$id': typeof AppClientesIdRoute
   '/app/clientes': typeof AppClientesIndexRoute
+  '/app/criativos': typeof AppCriativosIndexRoute
   '/app/tarefas': typeof AppTarefasIndexRoute
+  '/app/usuarios': typeof AppUsuariosIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -78,7 +94,9 @@ export interface FileRoutesById {
   '/app/': typeof AppIndexRoute
   '/app/clientes/$id': typeof AppClientesIdRoute
   '/app/clientes/': typeof AppClientesIndexRoute
+  '/app/criativos/': typeof AppCriativosIndexRoute
   '/app/tarefas/': typeof AppTarefasIndexRoute
+  '/app/usuarios/': typeof AppUsuariosIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -89,7 +107,9 @@ export interface FileRouteTypes {
     | '/app/'
     | '/app/clientes/$id'
     | '/app/clientes/'
+    | '/app/criativos/'
     | '/app/tarefas/'
+    | '/app/usuarios/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -97,7 +117,9 @@ export interface FileRouteTypes {
     | '/app'
     | '/app/clientes/$id'
     | '/app/clientes'
+    | '/app/criativos'
     | '/app/tarefas'
+    | '/app/usuarios'
   id:
     | '__root__'
     | '/'
@@ -106,7 +128,9 @@ export interface FileRouteTypes {
     | '/app/'
     | '/app/clientes/$id'
     | '/app/clientes/'
+    | '/app/criativos/'
     | '/app/tarefas/'
+    | '/app/usuarios/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -145,11 +169,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/usuarios/': {
+      id: '/app/usuarios/'
+      path: '/usuarios'
+      fullPath: '/app/usuarios/'
+      preLoaderRoute: typeof AppUsuariosIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/tarefas/': {
       id: '/app/tarefas/'
       path: '/tarefas'
       fullPath: '/app/tarefas/'
       preLoaderRoute: typeof AppTarefasIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/criativos/': {
+      id: '/app/criativos/'
+      path: '/criativos'
+      fullPath: '/app/criativos/'
+      preLoaderRoute: typeof AppCriativosIndexRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/clientes/': {
@@ -173,14 +211,18 @@ interface AppRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
   AppClientesIdRoute: typeof AppClientesIdRoute
   AppClientesIndexRoute: typeof AppClientesIndexRoute
+  AppCriativosIndexRoute: typeof AppCriativosIndexRoute
   AppTarefasIndexRoute: typeof AppTarefasIndexRoute
+  AppUsuariosIndexRoute: typeof AppUsuariosIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppIndexRoute: AppIndexRoute,
   AppClientesIdRoute: AppClientesIdRoute,
   AppClientesIndexRoute: AppClientesIndexRoute,
+  AppCriativosIndexRoute: AppCriativosIndexRoute,
   AppTarefasIndexRoute: AppTarefasIndexRoute,
+  AppUsuariosIndexRoute: AppUsuariosIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -193,3 +235,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
