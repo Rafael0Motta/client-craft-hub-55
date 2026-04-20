@@ -225,6 +225,24 @@ Deno.serve(async (req) => {
       return jsonResponse({ ok: true });
     }
 
+    if (body.action === "delete_cliente") {
+      const clienteId = body.cliente_id;
+      if (!clienteId) return jsonResponse({ error: "cliente_id obrigatório" }, 400);
+
+      const { data: crs } = await admin.from("criativos").select("id").eq("cliente_id", clienteId);
+      const criativoIds = (crs ?? []).map((c) => c.id);
+      if (criativoIds.length) {
+        await admin.from("criativo_comentarios").delete().in("criativo_id", criativoIds);
+        await admin.from("criativo_versoes").delete().in("criativo_id", criativoIds);
+      }
+      await admin.from("criativos").delete().eq("cliente_id", clienteId);
+      await admin.from("tarefas").delete().eq("cliente_id", clienteId);
+      await admin.from("cliente_gestores").delete().eq("cliente_id", clienteId);
+      const { error: cliErr } = await admin.from("clientes").delete().eq("id", clienteId);
+      if (cliErr) return jsonResponse({ error: cliErr.message }, 400);
+      return jsonResponse({ ok: true });
+    }
+
     return jsonResponse({ error: "Ação inválida" }, 400);
   } catch (e) {
     return jsonResponse({ error: (e as Error).message }, 500);
