@@ -313,7 +313,9 @@ function TarefasPage() {
                           {t.clientes?.nome ?? "—"}
                           {t.tipos_tarefa?.nome ? ` · ${t.tipos_tarefa.nome}` : ""}
                           {t.funil ? ` · ${funilLabels[t.funil]}` : ""}
-                          {t.prazo ? ` · prazo ${t.prazo}` : ""}
+                          {` · criada ${format(new Date(t.created_at), "dd/MM/yyyy")}`}
+                          {t.prazo ? ` · vence ${format(new Date(t.prazo), "dd/MM/yyyy")}` : ""}
+                          {t.profiles?.nome ? ` · por ${t.profiles.nome}` : ""}
                         </div>
                       </Link>
                       <PriorityBadge priority={t.prioridade} />
