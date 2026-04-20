@@ -374,42 +374,19 @@ function NewTarefaDialog({
   }) => void;
   submitting: boolean;
 }) {
-  const qc = useQueryClient();
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [clienteId, setClienteId] = useState("");
   const [prioridade, setPrioridade] = useState("media");
   const [prazo, setPrazo] = useState("");
-  const [tipoId, setTipoId] = useState("");
   const [funil, setFunil] = useState<string>("");
-  const [showNovoTipo, setShowNovoTipo] = useState(false);
-  const [novoTipoNome, setNovoTipoNome] = useState("");
 
-  const tipoSelecionado = tipos.find((t) => t.id === tipoId);
-  const isCriativo = tipoSelecionado?.nome.toLowerCase() === "criativo";
-
-  const criarTipo = useMutation({
-    mutationFn: async (nome: string) => {
-      const { data, error } = await supabase
-        .from("tipos_tarefa")
-        .insert({ nome } as never)
-        .select("id, nome")
-        .single();
-      if (error) throw error;
-      return data as TipoTarefa;
-    },
-    onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: ["tipos-tarefa"] });
-      setTipoId(data.id);
-      setShowNovoTipo(false);
-      setNovoTipoNome("");
-      toast.success(`Tipo "${data.nome}" criado`);
-    },
-    onError: (e: Error) => toast.error("Erro ao criar tipo", { description: e.message }),
-  });
+  const tipoCriativo = tipos.find((t) => t.nome.toLowerCase() === "criativo");
+  const tipoId = tipoCriativo?.id ?? "";
+  const isCriativo = true;
 
   const canSubmit =
-    !!titulo && !!clienteId && !!tipoId && (!isCriativo || !!funil) && !submitting;
+    !!titulo && !!clienteId && !!tipoId && !!funil && !submitting;
 
   return (
     <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
