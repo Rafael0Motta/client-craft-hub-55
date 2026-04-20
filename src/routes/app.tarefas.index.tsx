@@ -140,6 +140,7 @@ function TarefasPage() {
       prioridade: string; prazo: string | null;
       tipo_tarefa_id: string; funil: string | null;
     }) => {
+      const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase.from("tarefas").insert({
         cliente_id: p.cliente_id,
         titulo: p.titulo,
@@ -148,6 +149,7 @@ function TarefasPage() {
         prazo: p.prazo,
         tipo_tarefa_id: p.tipo_tarefa_id,
         funil: p.funil as never,
+        criado_por: user?.id ?? null,
       } as never);
       if (error) throw error;
     },
