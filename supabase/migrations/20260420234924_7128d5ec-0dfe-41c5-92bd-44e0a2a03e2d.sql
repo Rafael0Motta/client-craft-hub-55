@@ -1,0 +1,1 @@
+DELETE FROM public.tipos_tarefa WHERE lower(nome) <> 'criativo';
