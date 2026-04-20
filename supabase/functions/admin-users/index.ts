@@ -40,7 +40,8 @@ interface UpdateUserBody {
   grupo_id?: string | null;
 }
 interface DeleteBody { action: "delete"; user_id: string; }
-type Body = CreateBody | UpdateRoleBody | UpdateUserBody | DeleteBody;
+interface DeleteClienteBody { action: "delete_cliente"; cliente_id: string; }
+type Body = CreateBody | UpdateRoleBody | UpdateUserBody | DeleteBody | DeleteClienteBody;
 
 function jsonResponse(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
