@@ -402,35 +402,8 @@ function NewTarefaDialog({
           </Select>
         </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label>Tipo de tarefa *</Label>
-            <Button type="button" variant="ghost" size="sm" onClick={() => setShowNovoTipo((s) => !s)}>
-              <Plus className="h-3 w-3 mr-1" /> Novo tipo
-            </Button>
-          </div>
-          <Select value={tipoId} onValueChange={(v) => { setTipoId(v); setFunil(""); }}>
-            <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-            <SelectContent>
-              {tipos.map((t) => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          {showNovoTipo && (
-            <div className="flex gap-2">
-              <Input
-                placeholder="Nome do novo tipo"
-                value={novoTipoNome}
-                onChange={(e) => setNovoTipoNome(e.target.value)}
-              />
-              <Button
-                type="button"
-                disabled={!novoTipoNome.trim() || criarTipo.isPending}
-                onClick={() => criarTipo.mutate(novoTipoNome.trim())}
-              >
-                Salvar
-              </Button>
-            </div>
-          )}
+        <div className="text-xs text-muted-foreground">
+          Tipo: <strong>Criativo</strong>
         </div>
 
         {isCriativo && (
