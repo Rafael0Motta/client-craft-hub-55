@@ -273,9 +273,13 @@ function TarefasPage() {
                               {t.prazo && (
                                 <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
                                   <Calendar className="h-3 w-3" />
-                                  {format(new Date(t.prazo), "dd/MM")}
+                                  Vence {format(new Date(t.prazo), "dd/MM/yyyy")}
                                 </span>
                               )}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground space-y-0.5 pt-1 border-t">
+                              <div>Criada em {format(new Date(t.created_at), "dd/MM/yyyy")}</div>
+                              <div>Por {t.profiles?.nome ?? "—"}</div>
                             </div>
                             {(role === "admin" || role === "gestor") && (
                               <Select value={t.status} onValueChange={(v) => updateStatus.mutate({ id: t.id, status: v })}>
