@@ -64,9 +64,16 @@ function TarefasPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("tarefas")
-        .select("id, titulo, descricao, status, prioridade, prazo, cliente_id, tipo_tarefa_id, funil, clientes(nome), tipos_tarefa(nome)")
+        .select("id, titulo, descricao, status, prioridade, prazo, created_at, criado_por, cliente_id, tipo_tarefa_id, funil, clientes(nome), tipos_tarefa(nome)")
         .order("created_at", { ascending: false });
-      return (data ?? []) as unknown as Tarefa[];
+      const list = (data ?? []) as unknown as Tarefa[];
+      const ids = Array.from(new Set(list.map((t) => t.criado_por).filter(Boolean))) as string[];
+      if (ids.length) {
+        const { data: profs } = await supabase.from("profiles").select("id, nome").in("id", ids);
+        const map = new Map((profs ?? []).map((p) => [p.id, p.nome]));
+        list.forEach((t) => { t.profiles = t.criado_por ? { nome: map.get(t.criado_por) ?? "—" } : null; });
+      }
+      return list;
     },
   });
 
