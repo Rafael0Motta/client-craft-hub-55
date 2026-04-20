@@ -15,10 +15,15 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, ExternalLink, FolderOpen, Pencil, Plus } from "lucide-react";
+import { ArrowLeft, ExternalLink, FolderOpen, Pencil, Plus, Trash2 } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { taskPriorityLabels, funilLabels, funilOrder } from "@/lib/labels";
 import { toast } from "sonner";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/app/clientes/$id")({
   component: ClienteDetailPage,
