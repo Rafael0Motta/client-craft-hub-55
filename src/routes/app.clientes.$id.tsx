@@ -36,13 +36,30 @@ function ClienteDetailPage() {
   const { role } = useAuth();
   const qc = useQueryClient();
 
+  const navigate = useNavigate();
   const canEditCampanha = role === "admin" || role === "gestor";
   const canEditDetalhes = role === "admin";
   const canCreateTarefa = role === "admin" || role === "gestor";
+  const canDelete = role === "admin";
 
   const [editCampanhaOpen, setEditCampanhaOpen] = useState(false);
   const [editDetalhesOpen, setEditDetalhesOpen] = useState(false);
   const [newTarefaOpen, setNewTarefaOpen] = useState(false);
+
+  const deleteCliente = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.functions.invoke("admin-users", {
+        body: { action: "delete_cliente", cliente_id: id },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clientes"] });
+      toast.success("Cliente excluído");
+      navigate({ to: "/app/clientes" });
+    },
+    onError: (e: Error) => toast.error("Erro ao excluir", { description: e.message }),
+  });
 
   const { data: cliente } = useQuery({
     queryKey: ["cliente", id],
