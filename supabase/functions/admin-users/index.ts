@@ -190,6 +190,35 @@ Deno.serve(async (req) => {
     }
 
     if (body.action === "delete") {
+      // Verifica se é cliente; se sim, remove os clientes vinculados (e cascata: cliente_gestores, tarefas, criativos via FKs)
+      const { data: roleRows } = await admin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", body.user_id);
+      const isCliente = (roleRows ?? []).some((r) => r.role === "cliente");
+
+      if (isCliente) {
+        const { data: clis } = await admin
+          .from("clientes")
+          .select("id")
+          .eq("user_id", body.user_id);
+        const clienteIds = (clis ?? []).map((c) => c.id);
+        if (clienteIds.length) {
+          // Remove dependências que podem não ter ON DELETE CASCADE
+          await admin.from("cliente_gestores").delete().in("cliente_id", clienteIds);
+          await admin.from("criativo_comentarios").delete().in("criativo_id",
+            ((await admin.from("criativos").select("id").in("cliente_id", clienteIds)).data ?? []).map((c) => c.id),
+          );
+          await admin.from("criativo_versoes").delete().in("criativo_id",
+            ((await admin.from("criativos").select("id").in("cliente_id", clienteIds)).data ?? []).map((c) => c.id),
+          );
+          await admin.from("criativos").delete().in("cliente_id", clienteIds);
+          await admin.from("tarefas").delete().in("cliente_id", clienteIds);
+          const { error: cliDelErr } = await admin.from("clientes").delete().in("id", clienteIds);
+          if (cliDelErr) return jsonResponse({ error: `Erro ao excluir clientes vinculados: ${cliDelErr.message}` }, 400);
+        }
+      }
+
       const { error: delErr } = await admin.auth.admin.deleteUser(body.user_id);
       if (delErr) return jsonResponse({ error: delErr.message }, 400);
       return jsonResponse({ ok: true });
