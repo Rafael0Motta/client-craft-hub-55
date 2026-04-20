@@ -15,10 +15,15 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, ExternalLink, FolderOpen, Pencil, Plus } from "lucide-react";
+import { ArrowLeft, ExternalLink, FolderOpen, Pencil, Plus, Trash2 } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { taskPriorityLabels, funilLabels, funilOrder } from "@/lib/labels";
 import { toast } from "sonner";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/app/clientes/$id")({
   component: ClienteDetailPage,
@@ -31,13 +36,30 @@ function ClienteDetailPage() {
   const { role } = useAuth();
   const qc = useQueryClient();
 
+  const navigate = useNavigate();
   const canEditCampanha = role === "admin" || role === "gestor";
   const canEditDetalhes = role === "admin";
   const canCreateTarefa = role === "admin" || role === "gestor";
+  const canDelete = role === "admin";
 
   const [editCampanhaOpen, setEditCampanhaOpen] = useState(false);
   const [editDetalhesOpen, setEditDetalhesOpen] = useState(false);
   const [newTarefaOpen, setNewTarefaOpen] = useState(false);
+
+  const deleteCliente = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.functions.invoke("admin-users", {
+        body: { action: "delete_cliente", cliente_id: id },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clientes"] });
+      toast.success("Cliente excluído");
+      navigate({ to: "/app/clientes" });
+    },
+    onError: (e: Error) => toast.error("Erro ao excluir", { description: e.message }),
+  });
 
   const { data: cliente } = useQuery({
     queryKey: ["cliente", id],
@@ -150,18 +172,47 @@ function ClienteDetailPage() {
         title={cliente.nome}
         description={cliente.segmento ?? undefined}
         actions={
-          canCreateTarefa ? (
-            <Dialog open={newTarefaOpen} onOpenChange={setNewTarefaOpen}>
-              <DialogTrigger asChild>
-                <Button><Plus className="h-4 w-4 mr-2" /> Nova tarefa</Button>
-              </DialogTrigger>
-              <NewTarefaDialog
-                tipos={tipos ?? []}
-                onSubmit={(p) => createTarefa.mutate(p)}
-                submitting={createTarefa.isPending}
-              />
-            </Dialog>
-          ) : null
+          <div className="flex items-center gap-2">
+            {canCreateTarefa && (
+              <Dialog open={newTarefaOpen} onOpenChange={setNewTarefaOpen}>
+                <DialogTrigger asChild>
+                  <Button><Plus className="h-4 w-4 mr-2" /> Nova tarefa</Button>
+                </DialogTrigger>
+                <NewTarefaDialog
+                  tipos={tipos ?? []}
+                  onSubmit={(p) => createTarefa.mutate(p)}
+                  submitting={createTarefa.isPending}
+                />
+              </Dialog>
+            )}
+            {canDelete && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" size="icon" title="Excluir cliente">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir cliente?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Esta ação remove o cliente <strong>{cliente.nome}</strong> e todas as tarefas,
+                      criativos, versões e comentários vinculados. Não pode ser desfeita.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      disabled={deleteCliente.isPending}
+                      onClick={() => deleteCliente.mutate()}
+                    >
+                      {deleteCliente.isPending ? "Excluindo…" : "Excluir"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
         }
       />
 

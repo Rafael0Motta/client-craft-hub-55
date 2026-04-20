@@ -40,7 +40,8 @@ interface UpdateUserBody {
   grupo_id?: string | null;
 }
 interface DeleteBody { action: "delete"; user_id: string; }
-type Body = CreateBody | UpdateRoleBody | UpdateUserBody | DeleteBody;
+interface DeleteClienteBody { action: "delete_cliente"; cliente_id: string; }
+type Body = CreateBody | UpdateRoleBody | UpdateUserBody | DeleteBody | DeleteClienteBody;
 
 function jsonResponse(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -221,6 +222,24 @@ Deno.serve(async (req) => {
 
       const { error: delErr } = await admin.auth.admin.deleteUser(body.user_id);
       if (delErr) return jsonResponse({ error: delErr.message }, 400);
+      return jsonResponse({ ok: true });
+    }
+
+    if (body.action === "delete_cliente") {
+      const clienteId = body.cliente_id;
+      if (!clienteId) return jsonResponse({ error: "cliente_id obrigatório" }, 400);
+
+      const { data: crs } = await admin.from("criativos").select("id").eq("cliente_id", clienteId);
+      const criativoIds = (crs ?? []).map((c) => c.id);
+      if (criativoIds.length) {
+        await admin.from("criativo_comentarios").delete().in("criativo_id", criativoIds);
+        await admin.from("criativo_versoes").delete().in("criativo_id", criativoIds);
+      }
+      await admin.from("criativos").delete().eq("cliente_id", clienteId);
+      await admin.from("tarefas").delete().eq("cliente_id", clienteId);
+      await admin.from("cliente_gestores").delete().eq("cliente_id", clienteId);
+      const { error: cliErr } = await admin.from("clientes").delete().eq("id", clienteId);
+      if (cliErr) return jsonResponse({ error: cliErr.message }, 400);
       return jsonResponse({ ok: true });
     }
 
