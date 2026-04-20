@@ -44,11 +44,24 @@ function TarefaDetalhePage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("tarefas")
-        .select("id, titulo, descricao, status, prioridade, prazo, cliente_id, created_at, criado_por, tipo_tarefa_id, funil, clientes(nome), tipos_tarefa(nome), profiles!criado_por(nome)")
+        .select("id, titulo, descricao, status, prioridade, prazo, cliente_id, created_at, criado_por, tipo_tarefa_id, funil, clientes(nome), tipos_tarefa(nome)")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
-      return data as unknown as {
+      if (!data) return null;
+      let criador: { nome: string } | null = null;
+      if (data.criado_por) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("nome")
+          .eq("id", data.criado_por)
+          .maybeSingle();
+        criador = prof ?? null;
+      }
+      return {
+        ...data,
+        profiles: criador,
+      } as unknown as {
         id: string; titulo: string; descricao: string | null;
         status: string; prioridade: string; prazo: string | null;
         cliente_id: string; created_at: string;
@@ -56,7 +69,7 @@ function TarefaDetalhePage() {
         clientes: { nome: string } | null;
         tipos_tarefa: { nome: string } | null;
         profiles: { nome: string } | null;
-      } | null;
+      };
     },
   });
 
