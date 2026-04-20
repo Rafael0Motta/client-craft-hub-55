@@ -117,7 +117,7 @@ function DashboardPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base flex items-center justify-between">
-                  Criativos para revisar
+                  Tarefas para revisar
                   {criativosPendentes.length > 0 && (
                     <span className="text-xs font-normal bg-accent-red text-accent-red-foreground px-2 py-0.5 rounded-full">
                       {criativosPendentes.length}
