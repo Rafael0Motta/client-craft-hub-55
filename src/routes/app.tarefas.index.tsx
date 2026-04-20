@@ -39,11 +39,14 @@ type Tarefa = {
   status: string;
   prioridade: string;
   prazo: string | null;
+  created_at: string;
+  criado_por: string | null;
   cliente_id: string;
   tipo_tarefa_id: string | null;
   funil: string | null;
   clientes: { nome: string } | null;
   tipos_tarefa: { nome: string } | null;
+  profiles?: { nome: string } | null;
 };
 
 function TarefasPage() {
@@ -61,9 +64,16 @@ function TarefasPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("tarefas")
-        .select("id, titulo, descricao, status, prioridade, prazo, cliente_id, tipo_tarefa_id, funil, clientes(nome), tipos_tarefa(nome)")
+        .select("id, titulo, descricao, status, prioridade, prazo, created_at, criado_por, cliente_id, tipo_tarefa_id, funil, clientes(nome), tipos_tarefa(nome)")
         .order("created_at", { ascending: false });
-      return (data ?? []) as unknown as Tarefa[];
+      const list = (data ?? []) as unknown as Tarefa[];
+      const ids = Array.from(new Set(list.map((t) => t.criado_por).filter(Boolean))) as string[];
+      if (ids.length) {
+        const { data: profs } = await supabase.from("profiles").select("id, nome").in("id", ids);
+        const map = new Map((profs ?? []).map((p) => [p.id, p.nome]));
+        list.forEach((t) => { t.profiles = t.criado_por ? { nome: map.get(t.criado_por) ?? "—" } : null; });
+      }
+      return list;
     },
   });
 
@@ -263,9 +273,13 @@ function TarefasPage() {
                               {t.prazo && (
                                 <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
                                   <Calendar className="h-3 w-3" />
-                                  {format(new Date(t.prazo), "dd/MM")}
+                                  Vence {format(new Date(t.prazo), "dd/MM/yyyy")}
                                 </span>
                               )}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground space-y-0.5 pt-1 border-t">
+                              <div>Criada em {format(new Date(t.created_at), "dd/MM/yyyy")}</div>
+                              <div>Por {t.profiles?.nome ?? "—"}</div>
                             </div>
                             {(role === "admin" || role === "gestor") && (
                               <Select value={t.status} onValueChange={(v) => updateStatus.mutate({ id: t.id, status: v })}>
@@ -299,7 +313,9 @@ function TarefasPage() {
                           {t.clientes?.nome ?? "—"}
                           {t.tipos_tarefa?.nome ? ` · ${t.tipos_tarefa.nome}` : ""}
                           {t.funil ? ` · ${funilLabels[t.funil]}` : ""}
-                          {t.prazo ? ` · prazo ${t.prazo}` : ""}
+                          {` · criada ${format(new Date(t.created_at), "dd/MM/yyyy")}`}
+                          {t.prazo ? ` · vence ${format(new Date(t.prazo), "dd/MM/yyyy")}` : ""}
+                          {t.profiles?.nome ? ` · por ${t.profiles.nome}` : ""}
                         </div>
                       </Link>
                       <PriorityBadge priority={t.prioridade} />
@@ -358,42 +374,19 @@ function NewTarefaDialog({
   }) => void;
   submitting: boolean;
 }) {
-  const qc = useQueryClient();
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [clienteId, setClienteId] = useState("");
   const [prioridade, setPrioridade] = useState("media");
   const [prazo, setPrazo] = useState("");
-  const [tipoId, setTipoId] = useState("");
   const [funil, setFunil] = useState<string>("");
-  const [showNovoTipo, setShowNovoTipo] = useState(false);
-  const [novoTipoNome, setNovoTipoNome] = useState("");
 
-  const tipoSelecionado = tipos.find((t) => t.id === tipoId);
-  const isCriativo = tipoSelecionado?.nome.toLowerCase() === "criativo";
-
-  const criarTipo = useMutation({
-    mutationFn: async (nome: string) => {
-      const { data, error } = await supabase
-        .from("tipos_tarefa")
-        .insert({ nome } as never)
-        .select("id, nome")
-        .single();
-      if (error) throw error;
-      return data as TipoTarefa;
-    },
-    onSuccess: (data) => {
-      qc.invalidateQueries({ queryKey: ["tipos-tarefa"] });
-      setTipoId(data.id);
-      setShowNovoTipo(false);
-      setNovoTipoNome("");
-      toast.success(`Tipo "${data.nome}" criado`);
-    },
-    onError: (e: Error) => toast.error("Erro ao criar tipo", { description: e.message }),
-  });
+  const tipoCriativo = tipos.find((t) => t.nome.toLowerCase() === "criativo");
+  const tipoId = tipoCriativo?.id ?? "";
+  const isCriativo = true;
 
   const canSubmit =
-    !!titulo && !!clienteId && !!tipoId && (!isCriativo || !!funil) && !submitting;
+    !!titulo && !!clienteId && !!tipoId && !!funil && !submitting;
 
   return (
     <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
@@ -409,35 +402,8 @@ function NewTarefaDialog({
           </Select>
         </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label>Tipo de tarefa *</Label>
-            <Button type="button" variant="ghost" size="sm" onClick={() => setShowNovoTipo((s) => !s)}>
-              <Plus className="h-3 w-3 mr-1" /> Novo tipo
-            </Button>
-          </div>
-          <Select value={tipoId} onValueChange={(v) => { setTipoId(v); setFunil(""); }}>
-            <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-            <SelectContent>
-              {tipos.map((t) => <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          {showNovoTipo && (
-            <div className="flex gap-2">
-              <Input
-                placeholder="Nome do novo tipo"
-                value={novoTipoNome}
-                onChange={(e) => setNovoTipoNome(e.target.value)}
-              />
-              <Button
-                type="button"
-                disabled={!novoTipoNome.trim() || criarTipo.isPending}
-                onClick={() => criarTipo.mutate(novoTipoNome.trim())}
-              >
-                Salvar
-              </Button>
-            </div>
-          )}
+        <div className="text-xs text-muted-foreground">
+          Tipo: <strong>Criativo</strong>
         </div>
 
         {isCriativo && (
