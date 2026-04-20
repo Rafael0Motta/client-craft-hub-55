@@ -101,7 +101,7 @@ export function CriativosSection({
       let q = supabase
         .from("criativos")
         .select(
-          "id, tarefa_id, cliente_id, arquivo_path, arquivo_nome, arquivo_tipo, link_url, descricao, status, status_operacional, comentario_revisao, enviado_por, created_at, clientes(nome), tarefas(titulo, tipos_tarefa(nome)), profiles!enviado_por(nome)"
+          "id, tarefa_id, cliente_id, arquivo_path, arquivo_nome, arquivo_tipo, link_url, descricao, status, status_operacional, comentario_revisao, enviado_por, created_at, clientes(nome), tarefas(titulo, tipos_tarefa(nome))"
         )
         .order("created_at", { ascending: false });
       if (tarefaId) q = q.eq("tarefa_id", tarefaId);
@@ -464,7 +464,7 @@ function CriativoCard({
     queryFn: async () => {
       const { data } = await supabase
         .from("criativo_versoes")
-        .select("id, criativo_id, versao, arquivo_path, arquivo_nome, arquivo_tipo, link_url, descricao, status, comentario_revisao, created_at, enviado_por, profiles!enviado_por(nome)")
+        .select("id, criativo_id, versao, arquivo_path, arquivo_nome, arquivo_tipo, link_url, descricao, status, comentario_revisao, created_at, enviado_por")
         .eq("criativo_id", criativo.id)
         .order("versao", { ascending: false });
       return (data ?? []) as unknown as Versao[];
@@ -492,7 +492,7 @@ function CriativoCard({
     queryFn: async () => {
       const { data } = await supabase
         .from("criativo_comentarios")
-        .select("id, texto, created_at, autor_id, profiles!autor_id(nome)")
+        .select("id, texto, created_at, autor_id")
         .eq("criativo_id", criativo.id)
         .order("created_at");
       return (data ?? []) as unknown as Array<{
