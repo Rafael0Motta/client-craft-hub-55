@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth-context";
 import { roleLabels } from "@/lib/labels";
-import { LayoutDashboard, Users, ListTodo, ImageIcon, UserCog, LogOut, Activity } from "lucide-react";
+import { LayoutDashboard, Users, ListTodo, UserCog, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -16,8 +16,6 @@ const navItems: NavItem[] = [
   { to: "/app", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "gestor", "cliente"] },
   { to: "/app/clientes", label: "Clientes", icon: Users, roles: ["admin", "gestor"] },
   { to: "/app/tarefas", label: "Tarefas", icon: ListTodo, roles: ["admin", "gestor", "cliente"] },
-  { to: "/app/criativos", label: "Criativos", icon: ImageIcon, roles: ["admin", "gestor", "cliente"] },
-  { to: "/app/status-criativos", label: "Status criativos", icon: Activity, roles: ["admin", "gestor"] },
   { to: "/app/usuarios", label: "Usuários", icon: UserCog, roles: ["admin"] },
 ];
 

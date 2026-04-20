@@ -15,8 +15,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppUsuariosIndexRouteImport } from './routes/app.usuarios.index'
 import { Route as AppTarefasIndexRouteImport } from './routes/app.tarefas.index'
-import { Route as AppStatusCriativosIndexRouteImport } from './routes/app.status-criativos.index'
-import { Route as AppCriativosIndexRouteImport } from './routes/app.criativos.index'
 import { Route as AppClientesIndexRouteImport } from './routes/app.clientes.index'
 import { Route as AppTarefasIdRouteImport } from './routes/app.tarefas.$id'
 import { Route as AppClientesIdRouteImport } from './routes/app.clientes.$id'
@@ -51,16 +49,6 @@ const AppTarefasIndexRoute = AppTarefasIndexRouteImport.update({
   path: '/tarefas/',
   getParentRoute: () => AppRoute,
 } as any)
-const AppStatusCriativosIndexRoute = AppStatusCriativosIndexRouteImport.update({
-  id: '/status-criativos/',
-  path: '/status-criativos/',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppCriativosIndexRoute = AppCriativosIndexRouteImport.update({
-  id: '/criativos/',
-  path: '/criativos/',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppClientesIndexRoute = AppClientesIndexRouteImport.update({
   id: '/clientes/',
   path: '/clientes/',
@@ -85,8 +73,6 @@ export interface FileRoutesByFullPath {
   '/app/clientes/$id': typeof AppClientesIdRoute
   '/app/tarefas/$id': typeof AppTarefasIdRoute
   '/app/clientes/': typeof AppClientesIndexRoute
-  '/app/criativos/': typeof AppCriativosIndexRoute
-  '/app/status-criativos/': typeof AppStatusCriativosIndexRoute
   '/app/tarefas/': typeof AppTarefasIndexRoute
   '/app/usuarios/': typeof AppUsuariosIndexRoute
 }
@@ -97,8 +83,6 @@ export interface FileRoutesByTo {
   '/app/clientes/$id': typeof AppClientesIdRoute
   '/app/tarefas/$id': typeof AppTarefasIdRoute
   '/app/clientes': typeof AppClientesIndexRoute
-  '/app/criativos': typeof AppCriativosIndexRoute
-  '/app/status-criativos': typeof AppStatusCriativosIndexRoute
   '/app/tarefas': typeof AppTarefasIndexRoute
   '/app/usuarios': typeof AppUsuariosIndexRoute
 }
@@ -111,8 +95,6 @@ export interface FileRoutesById {
   '/app/clientes/$id': typeof AppClientesIdRoute
   '/app/tarefas/$id': typeof AppTarefasIdRoute
   '/app/clientes/': typeof AppClientesIndexRoute
-  '/app/criativos/': typeof AppCriativosIndexRoute
-  '/app/status-criativos/': typeof AppStatusCriativosIndexRoute
   '/app/tarefas/': typeof AppTarefasIndexRoute
   '/app/usuarios/': typeof AppUsuariosIndexRoute
 }
@@ -126,8 +108,6 @@ export interface FileRouteTypes {
     | '/app/clientes/$id'
     | '/app/tarefas/$id'
     | '/app/clientes/'
-    | '/app/criativos/'
-    | '/app/status-criativos/'
     | '/app/tarefas/'
     | '/app/usuarios/'
   fileRoutesByTo: FileRoutesByTo
@@ -138,8 +118,6 @@ export interface FileRouteTypes {
     | '/app/clientes/$id'
     | '/app/tarefas/$id'
     | '/app/clientes'
-    | '/app/criativos'
-    | '/app/status-criativos'
     | '/app/tarefas'
     | '/app/usuarios'
   id:
@@ -151,8 +129,6 @@ export interface FileRouteTypes {
     | '/app/clientes/$id'
     | '/app/tarefas/$id'
     | '/app/clientes/'
-    | '/app/criativos/'
-    | '/app/status-criativos/'
     | '/app/tarefas/'
     | '/app/usuarios/'
   fileRoutesById: FileRoutesById
@@ -207,20 +183,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTarefasIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/status-criativos/': {
-      id: '/app/status-criativos/'
-      path: '/status-criativos'
-      fullPath: '/app/status-criativos/'
-      preLoaderRoute: typeof AppStatusCriativosIndexRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/criativos/': {
-      id: '/app/criativos/'
-      path: '/criativos'
-      fullPath: '/app/criativos/'
-      preLoaderRoute: typeof AppCriativosIndexRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/app/clientes/': {
       id: '/app/clientes/'
       path: '/clientes'
@@ -250,8 +212,6 @@ interface AppRouteChildren {
   AppClientesIdRoute: typeof AppClientesIdRoute
   AppTarefasIdRoute: typeof AppTarefasIdRoute
   AppClientesIndexRoute: typeof AppClientesIndexRoute
-  AppCriativosIndexRoute: typeof AppCriativosIndexRoute
-  AppStatusCriativosIndexRoute: typeof AppStatusCriativosIndexRoute
   AppTarefasIndexRoute: typeof AppTarefasIndexRoute
   AppUsuariosIndexRoute: typeof AppUsuariosIndexRoute
 }
@@ -261,8 +221,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppClientesIdRoute: AppClientesIdRoute,
   AppTarefasIdRoute: AppTarefasIdRoute,
   AppClientesIndexRoute: AppClientesIndexRoute,
-  AppCriativosIndexRoute: AppCriativosIndexRoute,
-  AppStatusCriativosIndexRoute: AppStatusCriativosIndexRoute,
   AppTarefasIndexRoute: AppTarefasIndexRoute,
   AppUsuariosIndexRoute: AppUsuariosIndexRoute,
 }

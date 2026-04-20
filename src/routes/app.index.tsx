@@ -129,7 +129,7 @@ function DashboardPage() {
                 {criativosPendentes.slice(0, 6).map((c) => (
                   <Link
                     key={c.id}
-                    to="/app/criativos"
+                    to="/app/tarefas"
                     className="flex items-center justify-between p-3 rounded-md hover:bg-accent transition-colors"
                   >
                     <div className="min-w-0">
