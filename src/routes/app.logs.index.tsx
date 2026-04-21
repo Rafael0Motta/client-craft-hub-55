@@ -166,7 +166,7 @@ function LogsPage() {
         </CardContent></Card>
         <Card><CardContent className="p-4">
           <div className="text-xs text-muted-foreground uppercase tracking-wider">Sucesso</div>
-          <div className="text-2xl font-bold text-green-600">{stats.success}</div>
+          <div className="text-2xl font-bold text-primary">{stats.success}</div>
         </CardContent></Card>
         <Card><CardContent className="p-4">
           <div className="text-xs text-muted-foreground uppercase tracking-wider">Falhas</div>

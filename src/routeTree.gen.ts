@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppUsuariosIndexRouteImport } from './routes/app.usuarios.index'
 import { Route as AppTarefasIndexRouteImport } from './routes/app.tarefas.index'
+import { Route as AppLogsIndexRouteImport } from './routes/app.logs.index'
 import { Route as AppClientesIndexRouteImport } from './routes/app.clientes.index'
 import { Route as AppTarefasIdRouteImport } from './routes/app.tarefas.$id'
 import { Route as AppClientesIdRouteImport } from './routes/app.clientes.$id'
@@ -49,6 +50,11 @@ const AppTarefasIndexRoute = AppTarefasIndexRouteImport.update({
   path: '/tarefas/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppLogsIndexRoute = AppLogsIndexRouteImport.update({
+  id: '/logs/',
+  path: '/logs/',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppClientesIndexRoute = AppClientesIndexRouteImport.update({
   id: '/clientes/',
   path: '/clientes/',
@@ -73,6 +79,7 @@ export interface FileRoutesByFullPath {
   '/app/clientes/$id': typeof AppClientesIdRoute
   '/app/tarefas/$id': typeof AppTarefasIdRoute
   '/app/clientes/': typeof AppClientesIndexRoute
+  '/app/logs/': typeof AppLogsIndexRoute
   '/app/tarefas/': typeof AppTarefasIndexRoute
   '/app/usuarios/': typeof AppUsuariosIndexRoute
 }
@@ -83,6 +90,7 @@ export interface FileRoutesByTo {
   '/app/clientes/$id': typeof AppClientesIdRoute
   '/app/tarefas/$id': typeof AppTarefasIdRoute
   '/app/clientes': typeof AppClientesIndexRoute
+  '/app/logs': typeof AppLogsIndexRoute
   '/app/tarefas': typeof AppTarefasIndexRoute
   '/app/usuarios': typeof AppUsuariosIndexRoute
 }
@@ -95,6 +103,7 @@ export interface FileRoutesById {
   '/app/clientes/$id': typeof AppClientesIdRoute
   '/app/tarefas/$id': typeof AppTarefasIdRoute
   '/app/clientes/': typeof AppClientesIndexRoute
+  '/app/logs/': typeof AppLogsIndexRoute
   '/app/tarefas/': typeof AppTarefasIndexRoute
   '/app/usuarios/': typeof AppUsuariosIndexRoute
 }
@@ -108,6 +117,7 @@ export interface FileRouteTypes {
     | '/app/clientes/$id'
     | '/app/tarefas/$id'
     | '/app/clientes/'
+    | '/app/logs/'
     | '/app/tarefas/'
     | '/app/usuarios/'
   fileRoutesByTo: FileRoutesByTo
@@ -118,6 +128,7 @@ export interface FileRouteTypes {
     | '/app/clientes/$id'
     | '/app/tarefas/$id'
     | '/app/clientes'
+    | '/app/logs'
     | '/app/tarefas'
     | '/app/usuarios'
   id:
@@ -129,6 +140,7 @@ export interface FileRouteTypes {
     | '/app/clientes/$id'
     | '/app/tarefas/$id'
     | '/app/clientes/'
+    | '/app/logs/'
     | '/app/tarefas/'
     | '/app/usuarios/'
   fileRoutesById: FileRoutesById
@@ -183,6 +195,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTarefasIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/logs/': {
+      id: '/app/logs/'
+      path: '/logs'
+      fullPath: '/app/logs/'
+      preLoaderRoute: typeof AppLogsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/clientes/': {
       id: '/app/clientes/'
       path: '/clientes'
@@ -212,6 +231,7 @@ interface AppRouteChildren {
   AppClientesIdRoute: typeof AppClientesIdRoute
   AppTarefasIdRoute: typeof AppTarefasIdRoute
   AppClientesIndexRoute: typeof AppClientesIndexRoute
+  AppLogsIndexRoute: typeof AppLogsIndexRoute
   AppTarefasIndexRoute: typeof AppTarefasIndexRoute
   AppUsuariosIndexRoute: typeof AppUsuariosIndexRoute
 }
@@ -221,6 +241,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppClientesIdRoute: AppClientesIdRoute,
   AppTarefasIdRoute: AppTarefasIdRoute,
   AppClientesIndexRoute: AppClientesIndexRoute,
+  AppLogsIndexRoute: AppLogsIndexRoute,
   AppTarefasIndexRoute: AppTarefasIndexRoute,
   AppUsuariosIndexRoute: AppUsuariosIndexRoute,
 }
