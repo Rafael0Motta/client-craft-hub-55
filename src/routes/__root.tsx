@@ -68,7 +68,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const [qc] = useState(() => new QueryClient({
-    defaultOptions: { queries: { staleTime: 1000 * 30, refetchOnWindowFocus: false } },
+    defaultOptions: { queries: { staleTime: 1000 * 60 * 5, gcTime: 1000 * 60 * 10, refetchOnWindowFocus: false, refetchOnMount: false } },
   }));
   return (
     <QueryClientProvider client={qc}>

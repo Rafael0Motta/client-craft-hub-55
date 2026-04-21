@@ -45,32 +45,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // 1) Listener PRIMEIRO
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
-      setUser(newSession?.user ?? null);
-      if (newSession?.user) {
-        // não bloqueia callback do supabase
-        setTimeout(() => {
-          loadUserData(newSession.user.id).finally(() => setLoading(false));
-        }, 0);
-      } else {
+    let loadedForUserId: string | null = null;
+
+    const maybeLoad = (uid: string | null) => {
+      if (!uid) {
+        loadedForUserId = null;
         setProfile(null);
         setRole(null);
         setClienteId(null);
         setLoading(false);
+        return;
       }
+      if (loadedForUserId === uid) {
+        // mesmo usuário — não recarregar (evita refetch em TOKEN_REFRESHED, foco etc.)
+        setLoading(false);
+        return;
+      }
+      loadedForUserId = uid;
+      setTimeout(() => {
+        loadUserData(uid).finally(() => setLoading(false));
+      }, 0);
+    };
+
+    // 1) Listener PRIMEIRO
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+      setUser(newSession?.user ?? null);
+      maybeLoad(newSession?.user?.id ?? null);
     });
 
     // 2) getSession depois
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       setUser(s?.user ?? null);
-      if (s?.user) {
-        loadUserData(s.user.id).finally(() => setLoading(false));
-      } else {
-        setLoading(false);
-      }
+      maybeLoad(s?.user?.id ?? null);
     });
 
     return () => sub.subscription.unsubscribe();
