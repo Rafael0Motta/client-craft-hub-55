@@ -43,13 +43,17 @@ async function buildTaskPayload(tarefaId: string) {
     gestores = gs ?? [];
   }
 
-  let clienteUser: { id: string; nome: string; email: string; telefone: string | null } | null = null;
+  let clienteUser: { id: string; nome: string; email: string; telefone: string | null; grupo_id: string | null } | null = null;
+  let grupoId: string | null = null;
   if (cliente?.user_id) {
-    const { data } = await supabase.from("profiles").select("id, nome, email, telefone").eq("id", cliente.user_id).maybeSingle();
+    const { data } = await supabase.from("profiles").select("id, nome, email, telefone, grupo_id").eq("id", cliente.user_id).maybeSingle();
     clienteUser = data;
+    grupoId = data?.grupo_id ?? null;
   }
 
-  return { tarefa, cliente, clienteUsuario: clienteUser, criadoPor: criador, tipo, gestores };
+  const clienteComGrupo = cliente ? { ...cliente, grupo_id: grupoId } : cliente;
+
+  return { tarefa, cliente: clienteComGrupo, clienteUsuario: clienteUser, criadoPor: criador, tipo, gestores };
 }
 
 async function buildCreativePayload(criativoId: string, versaoId?: string) {
