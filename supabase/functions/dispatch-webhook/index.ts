@@ -170,15 +170,21 @@ Deno.serve(async (req) => {
 
     if (event === "createTask" && body.tarefa_id) {
       const payload = await buildTaskPayload(body.tarefa_id);
-      if (payload) await send("createTask", payload);
+      if (payload) await send("createTask", payload, { tarefa_id: body.tarefa_id });
     } else if (event === "addContentTask" && body.criativo_id) {
       const payload = await buildCreativePayload(body.criativo_id, body.versao_id);
-      if (payload) await send("addContentTask", payload);
+      if (payload) await send("addContentTask", payload, { tarefa_id: payload.tarefa?.id ?? null, criativo_id: body.criativo_id });
     } else if (event === "cron") {
       const results = await checkDueTasks();
       return new Response(JSON.stringify({ ok: true, processed: results }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    } else if (event === "resend" && body.log_id) {
+      // Reenvia um log existente
+      const { data: log } = await supabase.from("webhook_logs").select("payload, tipo_gatilho, tarefa_id, criativo_id").eq("id", body.log_id).maybeSingle();
+      if (!log) return new Response(JSON.stringify({ error: "log not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const { tipoDeGatilho: _t, timestamp: _ts, ...rest } = log.payload as Record<string, unknown>;
+      await send(log.tipo_gatilho as EventType, rest, { tarefa_id: log.tarefa_id, criativo_id: log.criativo_id });
     } else {
       return new Response(JSON.stringify({ error: "unknown event" }), {
         status: 400,
