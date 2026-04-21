@@ -374,6 +374,45 @@ export type Database = {
         }
         Relationships: []
       }
+      webhook_logs: {
+        Row: {
+          created_at: string
+          criativo_id: string | null
+          error: string | null
+          id: string
+          payload: Json
+          response_body: string | null
+          response_status: number | null
+          success: boolean
+          tarefa_id: string | null
+          tipo_gatilho: string
+        }
+        Insert: {
+          created_at?: string
+          criativo_id?: string | null
+          error?: string | null
+          id?: string
+          payload: Json
+          response_body?: string | null
+          response_status?: number | null
+          success?: boolean
+          tarefa_id?: string | null
+          tipo_gatilho: string
+        }
+        Update: {
+          created_at?: string
+          criativo_id?: string | null
+          error?: string | null
+          id?: string
+          payload?: Json
+          response_body?: string | null
+          response_status?: number | null
+          success?: boolean
+          tarefa_id?: string | null
+          tipo_gatilho?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -82,19 +82,49 @@ async function buildCreativePayload(criativoId: string, versaoId?: string) {
   return { criativo, versao, enviadoPor, ...(taskPayload ?? {}) };
 }
 
-async function send(tipoDeGatilho: EventType, payload: Record<string, unknown>) {
+async function send(
+  tipoDeGatilho: EventType,
+  payload: Record<string, unknown>,
+  refs: { tarefa_id?: string | null; criativo_id?: string | null } = {},
+) {
   const body = { tipoDeGatilho, timestamp: new Date().toISOString(), ...payload };
   console.log(`[dispatch-webhook] ${tipoDeGatilho}`, JSON.stringify(body).slice(0, 500));
-  const res = await fetch(WEBHOOK_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const txt = await res.text();
-    console.error(`[dispatch-webhook] webhook failed ${res.status}: ${txt}`);
+
+  let status: number | null = null;
+  let respBody = "";
+  let errorMsg: string | null = null;
+  let success = false;
+
+  try {
+    const res = await fetch(WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    status = res.status;
+    respBody = await res.text();
+    success = res.ok;
+    if (!res.ok) {
+      errorMsg = `HTTP ${res.status}`;
+      console.error(`[dispatch-webhook] webhook failed ${res.status}: ${respBody}`);
+    }
+  } catch (e) {
+    errorMsg = (e as Error).message;
+    console.error(`[dispatch-webhook] webhook error`, e);
   }
-  return res.ok;
+
+  await supabase.from("webhook_logs").insert({
+    tipo_gatilho: tipoDeGatilho,
+    tarefa_id: refs.tarefa_id ?? null,
+    criativo_id: refs.criativo_id ?? null,
+    payload: body,
+    response_status: status,
+    response_body: respBody.slice(0, 5000),
+    error: errorMsg,
+    success,
+  });
+
+  return success;
 }
 
 async function checkDueTasks() {
@@ -117,14 +147,13 @@ async function checkDueTasks() {
     if (diffDays === 2) {
       const payload = await buildTaskPayload(t.id);
       if (payload) {
-        await send("taskDueSoon", payload);
+        await send("taskDueSoon", payload, { tarefa_id: t.id });
         results.push({ id: t.id, trigger: "taskDueSoon" });
       }
     } else if (diffDays < 0 && Math.abs(diffDays) % 2 === 0) {
-      // Vencida: a cada 2 dias após o vencimento (dia -2, -4, -6, ...)
       const payload = await buildTaskPayload(t.id);
       if (payload) {
-        await send("taskOverdue", { ...payload, diasVencida: Math.abs(diffDays) });
+        await send("taskOverdue", { ...payload, diasVencida: Math.abs(diffDays) }, { tarefa_id: t.id });
         results.push({ id: t.id, trigger: "taskOverdue" });
       }
     }
@@ -141,15 +170,21 @@ Deno.serve(async (req) => {
 
     if (event === "createTask" && body.tarefa_id) {
       const payload = await buildTaskPayload(body.tarefa_id);
-      if (payload) await send("createTask", payload);
+      if (payload) await send("createTask", payload, { tarefa_id: body.tarefa_id });
     } else if (event === "addContentTask" && body.criativo_id) {
       const payload = await buildCreativePayload(body.criativo_id, body.versao_id);
-      if (payload) await send("addContentTask", payload);
+      if (payload) await send("addContentTask", payload, { tarefa_id: payload.tarefa?.id ?? null, criativo_id: body.criativo_id });
     } else if (event === "cron") {
       const results = await checkDueTasks();
       return new Response(JSON.stringify({ ok: true, processed: results }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    } else if (event === "resend" && body.log_id) {
+      // Reenvia um log existente
+      const { data: log } = await supabase.from("webhook_logs").select("payload, tipo_gatilho, tarefa_id, criativo_id").eq("id", body.log_id).maybeSingle();
+      if (!log) return new Response(JSON.stringify({ error: "log not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const { tipoDeGatilho: _t, timestamp: _ts, ...rest } = log.payload as Record<string, unknown>;
+      await send(log.tipo_gatilho as EventType, rest, { tarefa_id: log.tarefa_id, criativo_id: log.criativo_id });
     } else {
       return new Response(JSON.stringify({ error: "unknown event" }), {
         status: 400,
