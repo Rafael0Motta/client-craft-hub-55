@@ -355,27 +355,21 @@ function EnvioCriativoForm({
               </Select>
             </div>
           )}
-          <div>
-            <label className="text-sm font-medium mb-2 block">Origem</label>
-            <Select
-              value={isCriativoEffective ? "link" : sourceMode}
-              onValueChange={(v) => setSourceMode(v as SourceMode)}
-              disabled={isCriativoEffective}
-            >
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {!isCriativoEffective && (
+          {!isCriativoEffective && (
+            <div>
+              <label className="text-sm font-medium mb-2 block">Origem</label>
+              <Select
+                value={sourceMode}
+                onValueChange={(v) => setSourceMode(v as SourceMode)}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
                   <SelectItem value="arquivo">Upload de arquivo</SelectItem>
-                )}
-                <SelectItem value="link">Link (Drive, Dropbox, etc.)</SelectItem>
-              </SelectContent>
-            </Select>
-            {isCriativoEffective && (
-              <p className="text-[11px] text-muted-foreground mt-1">
-                Tarefas do tipo Criativo aceitam apenas links.
-              </p>
-            )}
-          </div>
+                  <SelectItem value="link">Link (Drive, Dropbox, etc.)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
 
         {uploadMode === "versao" && tarefaAtiva && (
