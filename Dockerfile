@@ -3,7 +3,7 @@
 # =========================================================
 # Stage 1 — Builder
 # =========================================================
-FROM node:20-alpine AS builder
+FROM node:22.12-alpine AS builder
 
 WORKDIR /app
 
@@ -11,9 +11,8 @@ WORKDIR /app
 RUN apk add --no-cache python3 make g++
 
 # Instala deps com cache eficiente
-COPY package.json package-lock.json* bun.lockb* ./
-RUN if [ -f package-lock.json ]; then npm ci; \
-    else npm install; fi
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
 
 # Copia o restante do código
 COPY . .
@@ -36,8 +35,7 @@ FROM nginx:1.27-alpine AS runner
 # Config do Nginx com fallback SPA
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 
-# Saída do build do TanStack Start (Cloudflare): assets do client
-# O plugin gera os artefatos em dist/client (estáticos).
+# Saída do build do TanStack Start (Cloudflare): assets estáticos do client
 COPY --from=builder /app/dist/client /usr/share/nginx/html
 
 EXPOSE 80
