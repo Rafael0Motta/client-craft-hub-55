@@ -279,10 +279,12 @@ function TarefasPage() {
                                 </span>
                               )}
                             </div>
-                            <div className="text-[11px] text-muted-foreground space-y-0.5 pt-1 border-t">
-                              <div>Criada em {format(new Date(t.created_at), "dd/MM/yyyy")}</div>
-                              <div>Por {t.profiles?.nome ?? "—"}</div>
-                            </div>
+                            {role !== "cliente" && (
+                              <div className="text-[11px] text-muted-foreground space-y-0.5 pt-1 border-t">
+                                <div>Criada em {format(new Date(t.created_at), "dd/MM/yyyy")}</div>
+                                <div>Por {t.profiles?.nome ?? "—"}</div>
+                              </div>
+                            )}
                             {(role === "admin" || role === "gestor") && (
                               <Select value={t.status} onValueChange={(v) => updateStatus.mutate({ id: t.id, status: v })}>
                                 <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
@@ -315,9 +317,9 @@ function TarefasPage() {
                           {t.clientes?.nome ?? "—"}
                           {t.tipos_tarefa?.nome ? ` · ${t.tipos_tarefa.nome}` : ""}
                           {t.funil ? ` · ${funilLabels[t.funil]}` : ""}
-                          {` · criada ${format(new Date(t.created_at), "dd/MM/yyyy")}`}
+                          {role !== "cliente" && ` · criada ${format(new Date(t.created_at), "dd/MM/yyyy")}`}
                           {t.prazo ? ` · vence ${format(new Date(t.prazo), "dd/MM/yyyy")}` : ""}
-                          {t.profiles?.nome ? ` · por ${t.profiles.nome}` : ""}
+                          {role !== "cliente" && t.profiles?.nome ? ` · por ${t.profiles.nome}` : ""}
                         </div>
                       </Link>
                       <PriorityBadge priority={t.prioridade} />
