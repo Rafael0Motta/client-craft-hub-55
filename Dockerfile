@@ -3,14 +3,13 @@
 # =========================
 # Stage 1 — Build
 # =========================
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Instala dependências primeiro (melhor cache)
+# Instala dependências (usa npm install para tolerar lockfile fora de sincronia)
 COPY package.json package-lock.json* bun.lockb* ./
-RUN if [ -f package-lock.json ]; then npm ci; \
-    else npm install; fi
+RUN npm install --no-audit --no-fund
 
 # Copia o restante do código
 COPY . .
