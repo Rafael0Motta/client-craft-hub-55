@@ -2,11 +2,29 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
+type RuntimeEnv = { SUPABASE_URL?: string; SUPABASE_PUBLISHABLE_KEY?: string };
+declare global {
+  interface Window { __ENV?: RuntimeEnv }
+}
+
 function createSupabaseClient() {
-  // Use import.meta.env for client-side (Vite build-time replacement)
-  // Fall back to process.env for SSR (server-side rendering)
-  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
+  // Priority order:
+  // 1. Runtime env injected by SSR server into window.__ENV (production VPS / EasyPanel)
+  // 2. Vite build-time replacement (import.meta.env.VITE_*) — works when vars exist at build
+  // 3. Node process.env (SSR)
+  const runtime: RuntimeEnv =
+    (typeof window !== 'undefined' && window.__ENV) ||
+    (typeof globalThis !== 'undefined' && (globalThis as { __ENV?: RuntimeEnv }).__ENV) ||
+    {};
+
+  const SUPABASE_URL =
+    runtime.SUPABASE_URL ||
+    import.meta.env.VITE_SUPABASE_URL ||
+    (typeof process !== 'undefined' ? process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL : undefined);
+  const SUPABASE_PUBLISHABLE_KEY =
+    runtime.SUPABASE_PUBLISHABLE_KEY ||
+    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    (typeof process !== 'undefined' ? process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY : undefined);
 
   if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
     throw new Error(
