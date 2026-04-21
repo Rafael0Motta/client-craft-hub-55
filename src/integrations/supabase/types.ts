@@ -390,6 +390,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      invoke_dispatch_webhook: { Args: { payload: Json }; Returns: undefined }
       is_gestor_of_cliente: {
         Args: { _cliente_id: string; _user_id: string }
         Returns: boolean
