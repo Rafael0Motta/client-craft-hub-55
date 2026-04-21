@@ -147,14 +147,13 @@ async function checkDueTasks() {
     if (diffDays === 2) {
       const payload = await buildTaskPayload(t.id);
       if (payload) {
-        await send("taskDueSoon", payload);
+        await send("taskDueSoon", payload, { tarefa_id: t.id });
         results.push({ id: t.id, trigger: "taskDueSoon" });
       }
     } else if (diffDays < 0 && Math.abs(diffDays) % 2 === 0) {
-      // Vencida: a cada 2 dias após o vencimento (dia -2, -4, -6, ...)
       const payload = await buildTaskPayload(t.id);
       if (payload) {
-        await send("taskOverdue", { ...payload, diasVencida: Math.abs(diffDays) });
+        await send("taskOverdue", { ...payload, diasVencida: Math.abs(diffDays) }, { tarefa_id: t.id });
         results.push({ id: t.id, trigger: "taskOverdue" });
       }
     }
