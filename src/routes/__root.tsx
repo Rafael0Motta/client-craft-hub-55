@@ -75,7 +75,7 @@ function RootComponent() {
       <AuthProvider>
         <TooltipProvider>
           <Outlet />
-          <Toaster richColors position="top-right" />
+          <Toaster richColors position="bottom-right" />
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>
