@@ -1,14 +1,27 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth-context";
 import { PageHeader } from "@/components/AppShell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { StatusBadge, PriorityBadge } from "@/components/StatusBadge";
 import { CriativosSection } from "@/components/CriativosSection";
-import { ArrowLeft, Calendar, User as UserIcon, Building2 } from "lucide-react";
+import { taskStatusOrder, taskStatusLabels, taskPriorityLabels, funilLabels, funilOrder } from "@/lib/labels";
+import { ArrowLeft, Calendar, User as UserIcon, Building2, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/tarefas/$id")({
   component: TarefaDetalhePage,
@@ -35,9 +48,22 @@ function fmtDateTime(iso: string | null) {
   catch { return iso; }
 }
 
+type TarefaDetalhe = {
+  id: string; titulo: string; descricao: string | null;
+  status: string; prioridade: string; prazo: string | null;
+  cliente_id: string; created_at: string;
+  tipo_tarefa_id: string | null; funil: string | null;
+  clientes: { nome: string } | null;
+  tipos_tarefa: { nome: string } | null;
+  profiles: { nome: string } | null;
+};
+
 function TarefaDetalhePage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
+  const { role } = useAuth();
+  const qc = useQueryClient();
+  const [editOpen, setEditOpen] = useState(false);
 
   const { data: tarefa, isLoading } = useQuery({
     queryKey: ["tarefa", id],
@@ -58,20 +84,39 @@ function TarefaDetalhePage() {
           .maybeSingle();
         criador = prof ?? null;
       }
-      return {
-        ...data,
-        profiles: criador,
-      } as unknown as {
-        id: string; titulo: string; descricao: string | null;
-        status: string; prioridade: string; prazo: string | null;
-        cliente_id: string; created_at: string;
-        tipo_tarefa_id: string | null; funil: string | null;
-        clientes: { nome: string } | null;
-        tipos_tarefa: { nome: string } | null;
-        profiles: { nome: string } | null;
-      };
+      return { ...data, profiles: criador } as unknown as TarefaDetalhe;
     },
   });
+
+  const update = useMutation({
+    mutationFn: async (p: {
+      titulo: string; descricao: string | null;
+      status: string; prioridade: string;
+      prazo: string | null; funil: string | null;
+    }) => {
+      const { error } = await supabase
+        .from("tarefas")
+        .update({
+          titulo: p.titulo,
+          descricao: p.descricao,
+          status: p.status as never,
+          prioridade: p.prioridade as never,
+          prazo: p.prazo,
+          funil: p.funil as never,
+        })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tarefa", id] });
+      qc.invalidateQueries({ queryKey: ["tarefas"] });
+      setEditOpen(false);
+      toast.success("Tarefa atualizada");
+    },
+    onError: (e: Error) => toast.error("Erro ao atualizar", { description: e.message }),
+  });
+
+  const canEdit = role === "admin" || role === "gestor";
 
   if (isLoading) return <div className="text-sm text-muted-foreground">Carregando…</div>;
   if (!tarefa) return (
@@ -92,6 +137,13 @@ function TarefaDetalhePage() {
       <PageHeader
         title={tarefa.titulo}
         description={tarefa.clientes?.nome ?? "—"}
+        actions={
+          canEdit ? (
+            <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+              <Pencil className="h-4 w-4 mr-2" /> Editar
+            </Button>
+          ) : null
+        }
       />
 
       <Card className="mb-6">
@@ -157,6 +209,118 @@ function TarefaDetalhePage() {
         clienteId={tarefa.cliente_id}
         tipoTarefaNome={tarefa.tipos_tarefa?.nome ?? null}
       />
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <EditTarefaDialog
+          key={tarefa.id + (editOpen ? "-open" : "-closed")}
+          tarefa={tarefa}
+          onSubmit={(p) => update.mutate(p)}
+          submitting={update.isPending}
+        />
+      </Dialog>
     </>
+  );
+}
+
+function EditTarefaDialog({
+  tarefa, onSubmit, submitting,
+}: {
+  tarefa: TarefaDetalhe;
+  onSubmit: (p: {
+    titulo: string; descricao: string | null;
+    status: string; prioridade: string;
+    prazo: string | null; funil: string | null;
+  }) => void;
+  submitting: boolean;
+}) {
+  const [titulo, setTitulo] = useState(tarefa.titulo);
+  const [descricao, setDescricao] = useState(tarefa.descricao ?? "");
+  const [status, setStatus] = useState(tarefa.status);
+  const [prioridade, setPrioridade] = useState(tarefa.prioridade);
+  const [prazo, setPrazo] = useState(tarefa.prazo ?? "");
+  const [funil, setFunil] = useState<string>(tarefa.funil ?? "");
+
+  useEffect(() => {
+    setTitulo(tarefa.titulo);
+    setDescricao(tarefa.descricao ?? "");
+    setStatus(tarefa.status);
+    setPrioridade(tarefa.prioridade);
+    setPrazo(tarefa.prazo ?? "");
+    setFunil(tarefa.funil ?? "");
+  }, [tarefa]);
+
+  const isCriativo = tarefa.tipos_tarefa?.nome?.toLowerCase() === "criativo";
+  const canSubmit = !!titulo && (!isCriativo || !!funil) && !submitting;
+
+  return (
+    <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+      <DialogHeader><DialogTitle>Editar tarefa</DialogTitle></DialogHeader>
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label>Título *</Label>
+          <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} />
+        </div>
+        <div className="space-y-2">
+          <Label>Descrição</Label>
+          <Textarea rows={4} value={descricao} onChange={(e) => setDescricao(e.target.value)} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label>Status</Label>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {taskStatusOrder.map((s) => (
+                  <SelectItem key={s} value={s}>{taskStatusLabels[s]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Prioridade</Label>
+            <Select value={prioridade} onValueChange={setPrioridade}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {Object.entries(taskPriorityLabels).map(([v, l]) => (
+                  <SelectItem key={v} value={v}>{l}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label>Prazo</Label>
+            <Input type="date" value={prazo} onChange={(e) => setPrazo(e.target.value)} />
+          </div>
+          {isCriativo && (
+            <div className="space-y-2">
+              <Label>Classificação de funil *</Label>
+              <Select value={funil} onValueChange={setFunil}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {funilOrder.map((f) => <SelectItem key={f} value={f}>{funilLabels[f]}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+      </div>
+      <DialogFooter>
+        <Button
+          disabled={!canSubmit}
+          onClick={() => onSubmit({
+            titulo,
+            descricao: descricao.trim() ? descricao : null,
+            status,
+            prioridade,
+            prazo: prazo || null,
+            funil: isCriativo ? funil : null,
+          })}
+        >
+          {submitting ? "Salvando…" : "Salvar alterações"}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
   );
 }
