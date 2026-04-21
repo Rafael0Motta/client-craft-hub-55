@@ -206,7 +206,7 @@ function LogsPage() {
             <div className="divide-y">
               {filtered.map((log) => (
                 <div key={log.id} className="flex items-center gap-4 p-4 hover:bg-muted/40 transition-colors">
-                  <div className={`w-2 h-2 rounded-full shrink-0 ${log.success ? "bg-green-500" : "bg-destructive"}`} />
+                  <div className={`w-2 h-2 rounded-full shrink-0 ${log.success ? "bg-primary" : "bg-destructive"}`} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium text-sm">{tipoLabels[log.tipo_gatilho] ?? log.tipo_gatilho}</span>
