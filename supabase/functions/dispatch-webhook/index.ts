@@ -178,6 +178,12 @@ Deno.serve(async (req) => {
     } else if (event === "addContentTask" && body.criativo_id) {
       const payload = await buildCreativePayload(body.criativo_id, body.versao_id);
       if (payload) await send("addContentTask", payload, { tarefa_id: payload.tarefa?.id ?? null, criativo_id: body.criativo_id });
+    } else if ((event === "taskDueSoon" || event === "taskOverdue") && body.tarefa_id) {
+      const payload = await buildTaskPayload(body.tarefa_id);
+      if (payload) {
+        const extra = event === "taskOverdue" ? { diasVencida: body.diasVencida ?? 1 } : {};
+        await send(event, { ...payload, ...extra }, { tarefa_id: body.tarefa_id });
+      }
     } else if (event === "cron") {
       const results = await checkDueTasks();
       return new Response(JSON.stringify({ ok: true, processed: results }), {
