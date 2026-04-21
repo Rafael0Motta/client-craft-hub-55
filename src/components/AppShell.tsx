@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth-context";
 import { roleLabels } from "@/lib/labels";
-import { LayoutDashboard, Users, ListTodo, UserCog, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, ListTodo, UserCog, LogOut, Webhook } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +17,7 @@ const navItems: NavItem[] = [
   { to: "/app/clientes", label: "Clientes", icon: Users, roles: ["admin", "gestor"] },
   { to: "/app/tarefas", label: "Tarefas", icon: ListTodo, roles: ["admin", "gestor", "cliente"] },
   { to: "/app/usuarios", label: "Usuários", icon: UserCog, roles: ["admin"] },
+  { to: "/app/logs", label: "Logs Webhook", icon: Webhook, roles: ["admin"] },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
