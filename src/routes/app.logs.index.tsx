@@ -18,7 +18,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Search, RefreshCw, Trash2, Send, Eye } from "lucide-react";
+import { Search, RefreshCw, Trash2, Send, Eye, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -54,6 +54,7 @@ function LogsPage() {
   const [statusFiltro, setStatusFiltro] = useState<string>("all");
   const [viewing, setViewing] = useState<WebhookLog | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [testOpen, setTestOpen] = useState(false);
 
   const { data: logs, isLoading, refetch } = useQuery({
     queryKey: ["webhook-logs"],
@@ -140,6 +141,28 @@ function LogsPage() {
     onError: (e: Error) => toast.error("Erro", { description: e.message }),
   });
 
+  const test = useMutation({
+    mutationFn: async (params: { event: string; tarefa_id?: string; criativo_id?: string }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dispatch-webhook`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify(params),
+      });
+      if (!res.ok) throw new Error(`Falha (${res.status}): ${await res.text()}`);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["webhook-logs"] });
+      toast.success("Webhook de teste disparado");
+      setTestOpen(false);
+    },
+    onError: (e: Error) => toast.error("Erro no teste", { description: e.message }),
+  });
+
   if (role && role !== "admin") return <Navigate to="/app" />;
 
   return (
@@ -149,6 +172,9 @@ function LogsPage() {
         description="Histórico de chamadas enviadas ao webhook externo (n8n)."
         actions={
           <>
+            <Button onClick={() => setTestOpen(true)}>
+              <Zap className="h-4 w-4 mr-2" /> Testar webhook
+            </Button>
             <Button variant="outline" onClick={() => refetch()}>
               <RefreshCw className="h-4 w-4 mr-2" /> Atualizar
             </Button>
