@@ -319,6 +319,13 @@ function LogsPage() {
         </DialogContent>
       </Dialog>
 
+      <TestWebhookDialog
+        open={testOpen}
+        onOpenChange={setTestOpen}
+        onTest={(p) => test.mutate(p)}
+        submitting={test.isPending}
+      />
+
       <AlertDialog open={confirmClear} onOpenChange={setConfirmClear}>
         <AlertDialogContent>
           <AlertDialogHeader>
