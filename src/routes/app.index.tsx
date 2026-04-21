@@ -87,7 +87,7 @@ function DashboardPage() {
             <StatCard label="Criativos pendentes" value={criativosPendentes.length} icon={ImageIcon} accent="green" />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className={`grid grid-cols-1 ${role === "cliente" ? "" : "lg:grid-cols-2"} gap-6`}>
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Tarefas recentes</CardTitle>
@@ -114,41 +114,43 @@ function DashboardPage() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center justify-between">
-                  Tarefas para revisar
-                  {criativosPendentes.length > 0 && (
-                    <span className="text-xs font-normal bg-accent-red text-accent-red-foreground px-2 py-0.5 rounded-full">
-                      {criativosPendentes.length}
-                    </span>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {criativosPendentes.slice(0, 6).map((c) => (
-                  <Link
-                    key={c.id}
-                    to="/app/tarefas"
-                    className="flex items-center justify-between p-3 rounded-md hover:bg-accent transition-colors"
-                  >
-                    <div className="min-w-0">
-                      <div className="font-medium truncate">{c.arquivo_nome}</div>
-                      <div className="text-xs text-muted-foreground truncate">
-                        {(c.clientes as { nome: string } | null)?.nome ?? "—"}
+            {role !== "cliente" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center justify-between">
+                    Tarefas para revisar
+                    {criativosPendentes.length > 0 && (
+                      <span className="text-xs font-normal bg-accent-red text-accent-red-foreground px-2 py-0.5 rounded-full">
+                        {criativosPendentes.length}
+                      </span>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {criativosPendentes.slice(0, 6).map((c) => (
+                    <Link
+                      key={c.id}
+                      to="/app/tarefas"
+                      className="flex items-center justify-between p-3 rounded-md hover:bg-accent transition-colors"
+                    >
+                      <div className="min-w-0">
+                        <div className="font-medium truncate">{c.arquivo_nome}</div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {(c.clientes as { nome: string } | null)?.nome ?? "—"}
+                        </div>
                       </div>
-                    </div>
-                    <StatusBadge status={c.status} kind="creative" />
-                  </Link>
-                ))}
-                {criativosPendentes.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-6 flex flex-col items-center gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-[var(--status-approved)]" />
-                    Tudo em dia!
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+                      <StatusBadge status={c.status} kind="creative" />
+                    </Link>
+                  ))}
+                  {criativosPendentes.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-6 flex flex-col items-center gap-2">
+                      <CheckCircle2 className="h-5 w-5 text-[var(--status-approved)]" />
+                      Tudo em dia!
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </>
       )}
