@@ -355,9 +355,9 @@ function EnvioCriativoForm({
               </Select>
             </div>
           )}
-          <div>
-            <label className="text-sm font-medium mb-2 block">Origem</label>
-            {!isCriativoEffective && (
+          {!isCriativoEffective && (
+            <div>
+              <label className="text-sm font-medium mb-2 block">Origem</label>
               <Select
                 value={sourceMode}
                 onValueChange={(v) => setSourceMode(v as SourceMode)}
@@ -368,13 +368,8 @@ function EnvioCriativoForm({
                   <SelectItem value="link">Link (Drive, Dropbox, etc.)</SelectItem>
                 </SelectContent>
               </Select>
-            )}
-            {isCriativoEffective && (
-              <div className="h-9 px-3 flex items-center text-sm text-muted-foreground rounded-md border bg-muted/30">
-                <LinkIcon className="h-3.5 w-3.5 mr-2" /> Apenas link
-              </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {uploadMode === "versao" && tarefaAtiva && (
