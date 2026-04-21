@@ -345,3 +345,127 @@ function LogsPage() {
     </div>
   );
 }
+
+type TestParams = { event: string; tarefa_id?: string; criativo_id?: string };
+
+function TestWebhookDialog({
+  open, onOpenChange, onTest, submitting,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  onTest: (p: TestParams) => void;
+  submitting: boolean;
+}) {
+  const [event, setEvent] = useState<string>("createTask");
+  const [tarefaId, setTarefaId] = useState("");
+  const [criativoId, setCriativoId] = useState("");
+
+  const { data: tarefas } = useQuery({
+    queryKey: ["test-tarefas"],
+    enabled: open,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("tarefas")
+        .select("id, titulo, clientes(nome)")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      return (data ?? []) as unknown as Array<{ id: string; titulo: string; clientes: { nome: string } | null }>;
+    },
+  });
+
+  const { data: criativos } = useQuery({
+    queryKey: ["test-criativos"],
+    enabled: open && event === "addContentTask",
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("criativos")
+        .select("id, arquivo_nome, tarefas(titulo)")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      return (data ?? []) as unknown as Array<{ id: string; arquivo_nome: string; tarefas: { titulo: string } | null }>;
+    },
+  });
+
+  const needsTarefa = event === "createTask" || event === "taskDueSoon" || event === "taskOverdue";
+  const needsCriativo = event === "addContentTask";
+  const canSubmit =
+    !submitting &&
+    (event === "cron" ||
+      (needsTarefa && !!tarefaId) ||
+      (needsCriativo && !!criativoId));
+
+  const submit = () => {
+    if (event === "cron") return onTest({ event });
+    if (needsTarefa) return onTest({ event, tarefa_id: tarefaId });
+    if (needsCriativo) return onTest({ event, criativo_id: criativoId });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Disparar webhook de teste</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Tipo de evento</label>
+            <Select value={event} onValueChange={(v) => { setEvent(v); setTarefaId(""); setCriativoId(""); }}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="createTask">Tarefa criada (createTask)</SelectItem>
+                <SelectItem value="addContentTask">Conteúdo enviado (addContentTask)</SelectItem>
+                <SelectItem value="taskDueSoon">Vence em 2 dias (taskDueSoon)</SelectItem>
+                <SelectItem value="taskOverdue">Tarefa vencida (taskOverdue)</SelectItem>
+                <SelectItem value="cron">Rodar cron (verificação geral)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {needsTarefa && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Tarefa</label>
+              <Select value={tarefaId} onValueChange={setTarefaId}>
+                <SelectTrigger><SelectValue placeholder="Selecione uma tarefa" /></SelectTrigger>
+                <SelectContent>
+                  {(tarefas ?? []).map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.titulo} {t.clientes?.nome ? `· ${t.clientes.nome}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {needsCriativo && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Criativo</label>
+              <Select value={criativoId} onValueChange={setCriativoId}>
+                <SelectTrigger><SelectValue placeholder="Selecione um criativo" /></SelectTrigger>
+                <SelectContent>
+                  {(criativos ?? []).map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.arquivo_nome} {c.tarefas?.titulo ? `· ${c.tarefas.titulo}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {event === "cron" && (
+            <p className="text-xs text-muted-foreground">
+              Roda a verificação periódica que envia <code>taskDueSoon</code> (vence em 2 dias) e <code>taskOverdue</code> (vencidas) para todas as tarefas elegíveis.
+            </p>
+          )}
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button disabled={!canSubmit} onClick={submit}>
+            {submitting ? "Enviando…" : "Disparar"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
