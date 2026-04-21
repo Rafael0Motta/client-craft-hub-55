@@ -6,4 +6,8 @@
 // You can pass additional config via defineConfig({ vite: { ... } }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
-export default defineConfig();
+// Disable the Cloudflare Workers adapter for production builds so the app
+// builds as a Node SSR server (deployable to a VPS via Docker).
+export default defineConfig({
+  cloudflare: false,
+});
