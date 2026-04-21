@@ -128,6 +128,9 @@ function TarefaDetalhePage() {
     </div>
   );
 
+  const isCliente = role === "cliente";
+  const isCriativo = tarefa.tipos_tarefa?.nome?.toLowerCase() === "criativo";
+
   return (
     <>
       <Button variant="ghost" size="sm" className="mb-3" onClick={() => navigate({ to: "/app/tarefas" })}>
@@ -146,17 +149,34 @@ function TarefaDetalhePage() {
         }
       />
 
+      {isCliente && (
+        <Card className="mb-4 border-primary/30 bg-primary/5">
+          <CardContent className="p-4">
+            <div className="text-xs uppercase tracking-wider text-primary font-bold mb-2">Como proceder</div>
+            <ol className="text-sm space-y-1 list-decimal list-inside">
+              <li>Leia atentamente a <strong>descrição</strong> abaixo.</li>
+              {isCriativo ? (
+                <li>Cole o <strong>link do criativo</strong> (Drive, Dropbox, etc.) na seção abaixo e clique em <strong>Enviar link</strong>.</li>
+              ) : (
+                <li>Envie o(s) <strong>arquivo(s) ou link(s)</strong> na seção abaixo.</li>
+              )}
+              <li>Aguarde a <strong>aprovação</strong> do gestor. Se reprovado, envie uma <strong>nova versão</strong>.</li>
+            </ol>
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="mb-6">
         <CardContent className="p-5 space-y-4">
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={tarefa.status} />
-            <PriorityBadge priority={tarefa.prioridade} />
+            {!isCliente && <PriorityBadge priority={tarefa.prioridade} />}
             {tarefa.tipos_tarefa?.nome && (
               <span className="text-[11px] px-2 py-0.5 rounded bg-primary/10 text-primary font-semibold uppercase tracking-wider">
                 {tarefa.tipos_tarefa.nome}
               </span>
             )}
-            {tarefa.funil && (
+            {tarefa.funil && !isCliente && (
               <span className="text-[11px] px-2 py-0.5 rounded bg-accent text-accent-foreground font-semibold uppercase tracking-wider">
                 Funil: {tarefa.funil}
               </span>
@@ -171,21 +191,27 @@ function TarefaDetalhePage() {
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-            <div className="flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Cliente:</span>
-              <span className="font-medium">{tarefa.clientes?.nome ?? "—"}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <UserIcon className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Criada por:</span>
-              <span className="font-medium">{tarefa.profiles?.nome ?? "—"}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Criada em:</span>
-              <span className="font-medium">{fmtDateTime(tarefa.created_at)}</span>
-            </div>
+            {!isCliente && (
+              <div className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Cliente:</span>
+                <span className="font-medium">{tarefa.clientes?.nome ?? "—"}</span>
+              </div>
+            )}
+            {!isCliente && (
+              <div className="flex items-center gap-2">
+                <UserIcon className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Criada por:</span>
+                <span className="font-medium">{tarefa.profiles?.nome ?? "—"}</span>
+              </div>
+            )}
+            {!isCliente && (
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Criada em:</span>
+                <span className="font-medium">{fmtDateTime(tarefa.created_at)}</span>
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">Vencimento:</span>
@@ -196,12 +222,14 @@ function TarefaDetalhePage() {
       </Card>
 
       <div className="mb-3">
-        <h2 className="text-lg font-semibold">Criativos vinculados</h2>
-        <p className="text-sm text-muted-foreground">
-          {tarefa.tipos_tarefa?.nome?.toLowerCase() === "criativo"
-            ? "Tarefas do tipo Criativo aceitam apenas links (URLs)."
-            : "Envie e acompanhe os criativos desta tarefa."}
-        </p>
+        <h2 className="text-lg font-semibold">{isCliente ? "Envie seu criativo" : "Criativos vinculados"}</h2>
+        {!isCliente && (
+          <p className="text-sm text-muted-foreground">
+            {isCriativo
+              ? "Tarefas do tipo Criativo aceitam apenas links (URLs)."
+              : "Envie e acompanhe os criativos desta tarefa."}
+          </p>
+        )}
       </div>
 
       <CriativosSection
