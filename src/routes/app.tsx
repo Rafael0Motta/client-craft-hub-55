@@ -12,7 +12,7 @@ function AppLayout() {
   return (
     <RequireAuth>
       <AppShell>
-        <div className="p-8 max-w-7xl mx-auto">
+        <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
           <Outlet />
         </div>
       </AppShell>
