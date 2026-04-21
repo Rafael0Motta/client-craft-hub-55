@@ -82,19 +82,49 @@ async function buildCreativePayload(criativoId: string, versaoId?: string) {
   return { criativo, versao, enviadoPor, ...(taskPayload ?? {}) };
 }
 
-async function send(tipoDeGatilho: EventType, payload: Record<string, unknown>) {
+async function send(
+  tipoDeGatilho: EventType,
+  payload: Record<string, unknown>,
+  refs: { tarefa_id?: string | null; criativo_id?: string | null } = {},
+) {
   const body = { tipoDeGatilho, timestamp: new Date().toISOString(), ...payload };
   console.log(`[dispatch-webhook] ${tipoDeGatilho}`, JSON.stringify(body).slice(0, 500));
-  const res = await fetch(WEBHOOK_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const txt = await res.text();
-    console.error(`[dispatch-webhook] webhook failed ${res.status}: ${txt}`);
+
+  let status: number | null = null;
+  let respBody = "";
+  let errorMsg: string | null = null;
+  let success = false;
+
+  try {
+    const res = await fetch(WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    status = res.status;
+    respBody = await res.text();
+    success = res.ok;
+    if (!res.ok) {
+      errorMsg = `HTTP ${res.status}`;
+      console.error(`[dispatch-webhook] webhook failed ${res.status}: ${respBody}`);
+    }
+  } catch (e) {
+    errorMsg = (e as Error).message;
+    console.error(`[dispatch-webhook] webhook error`, e);
   }
-  return res.ok;
+
+  await supabase.from("webhook_logs").insert({
+    tipo_gatilho: tipoDeGatilho,
+    tarefa_id: refs.tarefa_id ?? null,
+    criativo_id: refs.criativo_id ?? null,
+    payload: body,
+    response_status: status,
+    response_body: respBody.slice(0, 5000),
+    error: errorMsg,
+    success,
+  });
+
+  return success;
 }
 
 async function checkDueTasks() {
