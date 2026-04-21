@@ -53,7 +53,7 @@ function DashboardPage() {
       const [clientes, tarefas, criativos] = await Promise.all([
         supabase.from("clientes").select("id, nome, segmento", { count: "exact" }).order("created_at", { ascending: false }),
         supabase.from("tarefas").select("id, titulo, status, prazo, cliente_id, clientes(nome)").order("created_at", { ascending: false }),
-        supabase.from("criativos").select("id, arquivo_nome, status, created_at, cliente_id, clientes(nome)").order("created_at", { ascending: false }),
+        supabase.from("criativos").select("id, arquivo_nome, status, created_at, cliente_id, tarefa_id, clientes(nome), tarefas(titulo)").order("created_at", { ascending: false }),
       ]);
       return {
         clientes: clientes.data ?? [],
@@ -134,7 +134,9 @@ function DashboardPage() {
                       className="flex items-center justify-between p-3 rounded-md hover:bg-accent transition-colors"
                     >
                       <div className="min-w-0">
-                        <div className="font-medium truncate">{c.arquivo_nome}</div>
+                        <div className="font-medium truncate">
+                          {(c as unknown as { tarefas: { titulo: string } | null }).tarefas?.titulo ?? c.arquivo_nome}
+                        </div>
                         <div className="text-xs text-muted-foreground truncate">
                           {(c.clientes as { nome: string } | null)?.nome ?? "—"}
                         </div>
