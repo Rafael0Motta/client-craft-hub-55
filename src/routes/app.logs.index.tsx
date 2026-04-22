@@ -21,6 +21,7 @@ import {
 import { Search, RefreshCw, Trash2, Send, Eye, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { Paginacao, usePaginacao } from "@/components/Paginacao";
 
 export const Route = createFileRoute("/app/logs/")({
   component: LogsPage,
