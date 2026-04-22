@@ -285,6 +285,7 @@ function ClientesGrid({
   );
 }
 
+function NewClienteDialog({
   gestores, clientesUsers, onSubmit, submitting,
 }: {
   gestores: Array<{ id: string; nome: string; email: string }>;
