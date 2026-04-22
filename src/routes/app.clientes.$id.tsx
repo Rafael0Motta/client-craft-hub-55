@@ -45,7 +45,41 @@ function ClienteDetailPage() {
 
   const [editCampanhaOpen, setEditCampanhaOpen] = useState(false);
   const [editDetalhesOpen, setEditDetalhesOpen] = useState(false);
+  const [editGestoresOpen, setEditGestoresOpen] = useState(false);
   const [newTarefaOpen, setNewTarefaOpen] = useState(false);
+
+  // Lista de gestores disponíveis (apenas admin pode editar vínculos)
+  const { data: gestoresOptions } = useQuery({
+    queryKey: ["gestores-options"],
+    enabled: role === "admin",
+    queryFn: async () => {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "gestor");
+      const ids = (roles ?? []).map((r) => r.user_id);
+      if (!ids.length) return [] as Array<{ id: string; nome: string }>;
+      const { data } = await supabase.from("profiles").select("id, nome").in("id", ids);
+      return (data ?? []) as Array<{ id: string; nome: string }>;
+    },
+  });
+
+  const updateGestores = useMutation({
+    mutationFn: async (gestor_ids: string[]) => {
+      await adminApi.call({
+        action: "update_cliente_gestores",
+        cliente_id: id,
+        gestor_ids,
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["cliente-gestores", id] });
+      qc.invalidateQueries({ queryKey: ["clientes"] });
+      setEditGestoresOpen(false);
+      toast.success("Gestores atualizados");
+    },
+    onError: (e: Error) => toast.error("Erro", { description: e.message }),
+  });
 
   const deleteCliente = useMutation({
     mutationFn: async () => {
@@ -268,7 +302,24 @@ function ClienteDetailPage() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div>
-              <div className="text-xs uppercase tracking-wider text-muted-foreground">Gestores</div>
+              <div className="flex items-center justify-between">
+                <div className="text-xs uppercase tracking-wider text-muted-foreground">Gestores</div>
+                {role === "admin" && (
+                  <Dialog open={editGestoresOpen} onOpenChange={setEditGestoresOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" variant="ghost" className="h-6 px-2 text-xs">
+                        <Pencil className="h-3 w-3 mr-1" /> Editar
+                      </Button>
+                    </DialogTrigger>
+                    <EditGestoresDialog
+                      options={gestoresOptions ?? []}
+                      initialIds={(gestores ?? []).map((g) => g.id)}
+                      onSubmit={(ids) => updateGestores.mutate(ids)}
+                      submitting={updateGestores.isPending}
+                    />
+                  </Dialog>
+                )}
+              </div>
               {(gestores ?? []).length === 0 ? (
                 <div className="font-medium">Não atribuído</div>
               ) : (
@@ -549,3 +600,49 @@ function NewTarefaDialog({
     </DialogContent>
   );
 }
+
+function EditGestoresDialog({
+  options, initialIds, onSubmit, submitting,
+}: {
+  options: Array<{ id: string; nome: string }>;
+  initialIds: string[];
+  onSubmit: (ids: string[]) => void;
+  submitting: boolean;
+}) {
+  const [selected, setSelected] = useState<string[]>(initialIds);
+  useEffect(() => { setSelected(initialIds); }, [initialIds.join(",")]);
+
+  const toggle = (id: string) =>
+    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  return (
+    <DialogContent>
+      <DialogHeader><DialogTitle>Editar gestores responsáveis</DialogTitle></DialogHeader>
+      <div className="space-y-2">
+        <Label>Selecione um ou mais gestores</Label>
+        {options.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum gestor cadastrado.</p>
+        ) : (
+          <div className="border rounded-md divide-y max-h-72 overflow-y-auto">
+            {options.map((g) => (
+              <label key={g.id} className="flex items-center gap-2 p-2 cursor-pointer hover:bg-accent text-sm">
+                <input
+                  type="checkbox"
+                  checked={selected.includes(g.id)}
+                  onChange={() => toggle(g.id)}
+                />
+                <span>{g.nome}</span>
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
+      <DialogFooter>
+        <Button disabled={submitting} onClick={() => onSubmit(selected)}>
+          {submitting ? "Salvando…" : "Salvar"}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+}
+

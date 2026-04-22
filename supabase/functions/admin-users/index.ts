@@ -44,7 +44,18 @@ interface UpdateUserBody {
 }
 interface DeleteBody { action: "delete"; user_id: string; }
 interface DeleteClienteBody { action: "delete_cliente"; cliente_id: string; }
-type Body = CreateBody | UpdateRoleBody | UpdateUserBody | DeleteBody | DeleteClienteBody;
+interface UpdateClienteGestoresBody {
+  action: "update_cliente_gestores";
+  cliente_id: string;
+  gestor_ids: string[];
+}
+type Body =
+  | CreateBody
+  | UpdateRoleBody
+  | UpdateUserBody
+  | DeleteBody
+  | DeleteClienteBody
+  | UpdateClienteGestoresBody;
 
 function jsonResponse(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -298,6 +309,40 @@ Deno.serve(async (req) => {
       await admin.from("cliente_gestores").delete().eq("cliente_id", clienteId);
       const { error: cliErr } = await admin.from("clientes").delete().eq("id", clienteId);
       if (cliErr) return jsonResponse({ error: cliErr.message }, 400);
+      return jsonResponse({ ok: true });
+    }
+
+    // ─────────── UPDATE CLIENTE GESTORES ───────────
+    if (body.action === "update_cliente_gestores") {
+      if (!isUuid(body.cliente_id)) return jsonResponse({ error: "cliente_id inválido" }, 400);
+      if (!Array.isArray(body.gestor_ids) || !body.gestor_ids.every(isUuid)) {
+        return jsonResponse({ error: "gestor_ids inválido" }, 400);
+      }
+      // Garante que todos os IDs informados são realmente gestores.
+      if (body.gestor_ids.length > 0) {
+        const { data: rows } = await admin
+          .from("user_roles")
+          .select("user_id")
+          .eq("role", "gestor")
+          .in("user_id", body.gestor_ids);
+        const validSet = new Set((rows ?? []).map((r) => r.user_id));
+        if (validSet.size !== body.gestor_ids.length) {
+          return jsonResponse({ error: "Um ou mais usuários não são gestores" }, 400);
+        }
+      }
+      const { error: delErr } = await admin
+        .from("cliente_gestores")
+        .delete()
+        .eq("cliente_id", body.cliente_id);
+      if (delErr) return jsonResponse({ error: delErr.message }, 400);
+      if (body.gestor_ids.length > 0) {
+        const links = body.gestor_ids.map((gid) => ({
+          cliente_id: body.cliente_id,
+          gestor_id: gid,
+        }));
+        const { error: insErr } = await admin.from("cliente_gestores").insert(links);
+        if (insErr) return jsonResponse({ error: insErr.message }, 400);
+      }
       return jsonResponse({ ok: true });
     }
 
