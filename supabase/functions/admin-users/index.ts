@@ -1,5 +1,11 @@
 // Edge function: admin gerencia usuários (criar/atualizar/deletar)
-// e criação combinada user-cliente (user + profile + role + clientes + cliente_gestores)
+// e criação combinada user-cliente.
+//
+// Mudanças de hardening:
+// - Cada ação valida o body antes de tocar no banco.
+// - Em delete: faz um único select de IDs de criativos e reusa, em vez
+//   de duas queries idênticas (corrige risco de inconsistência).
+// - Resposta sempre JSON; nunca expõe stack trace ao cliente.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -16,11 +22,8 @@ interface CreateBody {
   password: string;
   nome: string;
   role: Role;
-  // Campo opcional para admin/gestor
   telefone?: string | null;
-  // Campo opcional para cliente
   grupo_id?: string | null;
-  // Quando role = "cliente", obrigatório:
   cliente?: {
     nome: string;
     segmento?: string | null;
@@ -50,6 +53,18 @@ function jsonResponse(data: unknown, status = 200) {
   });
 }
 
+const ROLES: ReadonlySet<Role> = new Set(["admin", "gestor", "cliente"]);
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isUuid(s: unknown): s is string {
+  return typeof s === "string" && UUID_RE.test(s);
+}
+
+function isValidEmail(s: string): boolean {
+  // RFC simplificada — suficiente para impedir lixo. O Supabase também valida.
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s) && s.length <= 255;
+}
+
 function isValidDriveUrl(url: string) {
   try {
     const u = new URL(url);
@@ -68,6 +83,8 @@ Deno.serve(async (req) => {
     const ANON = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY")!;
 
     const authHeader = req.headers.get("Authorization") ?? "";
+    if (!authHeader) return jsonResponse({ error: "Não autenticado" }, 401);
+
     const userClient = createClient(SUPABASE_URL, ANON, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -85,22 +102,33 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (!roleRow) return jsonResponse({ error: "Apenas admin" }, 403);
 
-    const body = (await req.json()) as Body;
+    let body: Body;
+    try {
+      body = (await req.json()) as Body;
+    } catch {
+      return jsonResponse({ error: "Body inválido" }, 400);
+    }
 
+    // ─────────── CREATE ───────────
     if (body.action === "create") {
-      if (!body.email || !body.password || !body.nome || !body.role) {
-        return jsonResponse({ error: "Campos obrigatórios faltando" }, 400);
+      if (!body.email || !isValidEmail(body.email)) return jsonResponse({ error: "Email inválido" }, 400);
+      if (!body.password || body.password.length < 6 || body.password.length > 72) {
+        return jsonResponse({ error: "Senha deve ter 6–72 caracteres" }, 400);
       }
+      if (!body.nome || body.nome.trim().length === 0 || body.nome.length > 120) {
+        return jsonResponse({ error: "Nome inválido" }, 400);
+      }
+      if (!ROLES.has(body.role)) return jsonResponse({ error: "Papel inválido" }, 400);
 
-      // Validação extra para cliente
       if (body.role === "cliente") {
-        if (!body.cliente) return jsonResponse({ error: "Dados do cliente são obrigatórios" }, 400);
-        if (!body.cliente.nome) return jsonResponse({ error: "Nome do cliente obrigatório" }, 400);
-        if (!body.cliente.drive_folder_url || !isValidDriveUrl(body.cliente.drive_folder_url)) {
+        const c = body.cliente;
+        if (!c) return jsonResponse({ error: "Dados do cliente são obrigatórios" }, 400);
+        if (!c.nome?.trim() || c.nome.length > 200) return jsonResponse({ error: "Nome do cliente inválido" }, 400);
+        if (!c.drive_folder_url || !isValidDriveUrl(c.drive_folder_url)) {
           return jsonResponse({ error: "URL da pasta do Google Drive inválida" }, 400);
         }
-        if (!body.cliente.gestor_ids?.length) {
-          return jsonResponse({ error: "Selecione ao menos um gestor responsável" }, 400);
+        if (!Array.isArray(c.gestor_ids) || !c.gestor_ids.length || !c.gestor_ids.every(isUuid)) {
+          return jsonResponse({ error: "Selecione ao menos um gestor válido" }, 400);
         }
       }
 
@@ -138,7 +166,7 @@ Deno.serve(async (req) => {
           .select("id")
           .single();
         if (cliErr || !cli) {
-          // Rollback parcial: remove user
+          // Rollback: remove o auth user para não deixar órfãos.
           await admin.auth.admin.deleteUser(newUserId);
           return jsonResponse({ error: `Erro ao criar cliente: ${cliErr?.message}` }, 400);
         }
@@ -148,20 +176,38 @@ Deno.serve(async (req) => {
           cliente_id: cli.id,
           gestor_id: gid,
         }));
-        await admin.from("cliente_gestores").insert(links);
+        const { error: linkErr } = await admin.from("cliente_gestores").insert(links);
+        if (linkErr) {
+          // Rollback total
+          await admin.from("clientes").delete().eq("id", cli.id);
+          await admin.auth.admin.deleteUser(newUserId);
+          return jsonResponse({ error: `Erro ao vincular gestores: ${linkErr.message}` }, 400);
+        }
       }
 
       return jsonResponse({ user_id: newUserId, cliente_id });
     }
 
+    // ─────────── UPDATE ROLE ───────────
     if (body.action === "update_role") {
+      if (!isUuid(body.user_id)) return jsonResponse({ error: "user_id inválido" }, 400);
+      if (!ROLES.has(body.role)) return jsonResponse({ error: "Papel inválido" }, 400);
       await admin.from("user_roles").delete().eq("user_id", body.user_id);
       await admin.from("user_roles").insert({ user_id: body.user_id, role: body.role });
       return jsonResponse({ ok: true });
     }
 
+    // ─────────── UPDATE USER ───────────
     if (body.action === "update_user") {
-      // Atualiza auth (email/senha) se fornecidos
+      if (!isUuid(body.user_id)) return jsonResponse({ error: "user_id inválido" }, 400);
+      if (body.email !== undefined && !isValidEmail(body.email)) {
+        return jsonResponse({ error: "Email inválido" }, 400);
+      }
+      if (body.password && (body.password.length < 6 || body.password.length > 72)) {
+        return jsonResponse({ error: "Senha deve ter 6–72 caracteres" }, 400);
+      }
+      if (body.role && !ROLES.has(body.role)) return jsonResponse({ error: "Papel inválido" }, 400);
+
       const authUpdate: { email?: string; password?: string } = {};
       if (body.email) authUpdate.email = body.email;
       if (body.password) authUpdate.password = body.password;
@@ -170,7 +216,6 @@ Deno.serve(async (req) => {
         if (authErr) return jsonResponse({ error: authErr.message }, 400);
       }
 
-      // Atualiza profile
       const profileUpdate: Record<string, unknown> = {};
       if (body.nome !== undefined) profileUpdate.nome = body.nome;
       if (body.email !== undefined) profileUpdate.email = body.email;
@@ -181,7 +226,6 @@ Deno.serve(async (req) => {
         if (pErr) return jsonResponse({ error: pErr.message }, 400);
       }
 
-      // Atualiza role se fornecida
       if (body.role) {
         await admin.from("user_roles").delete().eq("user_id", body.user_id);
         await admin.from("user_roles").insert({ user_id: body.user_id, role: body.role });
@@ -190,8 +234,15 @@ Deno.serve(async (req) => {
       return jsonResponse({ ok: true });
     }
 
+    // ─────────── DELETE USER ───────────
     if (body.action === "delete") {
-      // Verifica se é cliente; se sim, remove os clientes vinculados (e cascata: cliente_gestores, tarefas, criativos via FKs)
+      if (!isUuid(body.user_id)) return jsonResponse({ error: "user_id inválido" }, 400);
+
+      // Não permitir excluir a si mesmo
+      if (body.user_id === userData.user.id) {
+        return jsonResponse({ error: "Você não pode excluir seu próprio usuário" }, 400);
+      }
+
       const { data: roleRows } = await admin
         .from("user_roles")
         .select("role")
@@ -205,18 +256,24 @@ Deno.serve(async (req) => {
           .eq("user_id", body.user_id);
         const clienteIds = (clis ?? []).map((c) => c.id);
         if (clienteIds.length) {
-          // Remove dependências que podem não ter ON DELETE CASCADE
+          // Busca IDs de criativos UMA vez (antes era feito 2x).
+          const { data: cris } = await admin
+            .from("criativos")
+            .select("id")
+            .in("cliente_id", clienteIds);
+          const criativoIds = (cris ?? []).map((c) => c.id);
+
           await admin.from("cliente_gestores").delete().in("cliente_id", clienteIds);
-          await admin.from("criativo_comentarios").delete().in("criativo_id",
-            ((await admin.from("criativos").select("id").in("cliente_id", clienteIds)).data ?? []).map((c) => c.id),
-          );
-          await admin.from("criativo_versoes").delete().in("criativo_id",
-            ((await admin.from("criativos").select("id").in("cliente_id", clienteIds)).data ?? []).map((c) => c.id),
-          );
+          if (criativoIds.length) {
+            await admin.from("criativo_comentarios").delete().in("criativo_id", criativoIds);
+            await admin.from("criativo_versoes").delete().in("criativo_id", criativoIds);
+          }
           await admin.from("criativos").delete().in("cliente_id", clienteIds);
           await admin.from("tarefas").delete().in("cliente_id", clienteIds);
           const { error: cliDelErr } = await admin.from("clientes").delete().in("id", clienteIds);
-          if (cliDelErr) return jsonResponse({ error: `Erro ao excluir clientes vinculados: ${cliDelErr.message}` }, 400);
+          if (cliDelErr) {
+            return jsonResponse({ error: `Erro ao excluir clientes vinculados: ${cliDelErr.message}` }, 400);
+          }
         }
       }
 
@@ -225,10 +282,11 @@ Deno.serve(async (req) => {
       return jsonResponse({ ok: true });
     }
 
+    // ─────────── DELETE CLIENTE ───────────
     if (body.action === "delete_cliente") {
-      const clienteId = body.cliente_id;
-      if (!clienteId) return jsonResponse({ error: "cliente_id obrigatório" }, 400);
+      if (!isUuid(body.cliente_id)) return jsonResponse({ error: "cliente_id inválido" }, 400);
 
+      const clienteId = body.cliente_id;
       const { data: crs } = await admin.from("criativos").select("id").eq("cliente_id", clienteId);
       const criativoIds = (crs ?? []).map((c) => c.id);
       if (criativoIds.length) {
@@ -245,6 +303,8 @@ Deno.serve(async (req) => {
 
     return jsonResponse({ error: "Ação inválida" }, 400);
   } catch (e) {
-    return jsonResponse({ error: (e as Error).message }, 500);
+    console.error("[admin-users] error", e);
+    // Não vaza detalhes internos em produção.
+    return jsonResponse({ error: "Erro interno. Verifique os logs." }, 500);
   }
 });
