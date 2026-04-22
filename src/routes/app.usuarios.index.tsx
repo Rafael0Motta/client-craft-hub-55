@@ -23,6 +23,7 @@ import { Plus, Trash2, Search, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { roleLabels } from "@/lib/labels";
 import { adminApi } from "@/lib/admin-api";
+import { Paginacao, usePaginacao } from "@/components/Paginacao";
 
 export const Route = createFileRoute("/app/usuarios/")({
   component: () => (
@@ -193,10 +194,52 @@ function UsuariosPage() {
         </div>
       </div>
 
+      <UsuariosLista
+        filtered={filtered}
+        users={users ?? []}
+        updateRole={(p) => updateRole.mutate(p)}
+        setEditing={setEditing}
+        remove={(id) => remove.mutate(id)}
+      />
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        {editing && (
+          <EditUserDialog
+            user={editing}
+            onSubmit={(p) => updateUser.mutate({ user_id: editing.id, ...p })}
+            submitting={updateUser.isPending}
+          />
+        )}
+      </Dialog>
+    </>
+  );
+}
+
+type UserRow = {
+  id: string;
+  nome: string;
+  email: string;
+  telefone: string | null;
+  grupo_id: string | null;
+  role: string | null;
+};
+
+function UsuariosLista({
+  filtered, users, updateRole, setEditing, remove,
+}: {
+  filtered: UserRow[];
+  users: UserRow[];
+  updateRole: (p: { user_id: string; role: string }) => void;
+  setEditing: (u: EditUser) => void;
+  remove: (id: string) => void;
+}) {
+  const { page, setPage, total, totalPages, pageItems, pageSize } = usePaginacao(filtered);
+  return (
+    <>
       <Card>
         <CardContent className="p-0">
           <div className="divide-y">
-            {filtered.map((u) => (
+            {pageItems.map((u) => (
               <div key={u.id} className="p-4 flex items-center justify-between gap-4">
                 <div className="min-w-0">
                   <div className="font-medium truncate">{u.nome}</div>
@@ -205,7 +248,7 @@ function UsuariosPage() {
                 <div className="flex items-center gap-2">
                   <Select
                     value={u.role ?? ""}
-                    onValueChange={(v) => updateRole.mutate({ user_id: u.id, role: v })}
+                    onValueChange={(v) => updateRole({ user_id: u.id, role: v })}
                   >
                     <SelectTrigger className="w-32"><SelectValue placeholder="—" /></SelectTrigger>
                     <SelectContent>
@@ -237,7 +280,7 @@ function UsuariosPage() {
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => remove.mutate(u.id)}>
+                        <AlertDialogAction onClick={() => remove(u.id)}>
                           Remover
                         </AlertDialogAction>
                       </AlertDialogFooter>
@@ -248,7 +291,7 @@ function UsuariosPage() {
             ))}
             {filtered.length === 0 && (
               <div className="p-10 text-center text-sm text-muted-foreground">
-                {(users ?? []).length === 0
+                {users.length === 0
                   ? "Nenhum usuário ainda. Crie o primeiro!"
                   : "Nenhum usuário corresponde aos filtros."}
               </div>
@@ -256,16 +299,7 @@ function UsuariosPage() {
           </div>
         </CardContent>
       </Card>
-
-      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        {editing && (
-          <EditUserDialog
-            user={editing}
-            onSubmit={(p) => updateUser.mutate({ user_id: editing.id, ...p })}
-            submitting={updateUser.isPending}
-          />
-        )}
-      </Dialog>
+      <Paginacao page={page} totalPages={totalPages} total={total} pageSize={pageSize} onChange={setPage} />
     </>
   );
 }
