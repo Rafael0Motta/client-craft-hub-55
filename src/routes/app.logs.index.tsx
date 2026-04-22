@@ -313,6 +313,63 @@ function LogsPage() {
   );
 }
 
+function LogsLista({
+  isLoading, filtered, onView, onResend, onDelete, resending,
+}: {
+  isLoading: boolean;
+  filtered: WebhookLog[];
+  onView: (l: WebhookLog) => void;
+  onResend: (id: string) => void;
+  onDelete: (id: string) => void;
+  resending: boolean;
+}) {
+  const { page, setPage, total, totalPages, pageItems, pageSize } = usePaginacao(filtered);
+  if (isLoading) return <div className="text-sm text-muted-foreground">Carregando…</div>;
+  return (
+    <>
+      <Card>
+        <CardContent className="p-0">
+          <div className="divide-y">
+            {pageItems.map((log) => (
+              <div key={log.id} className="flex items-center gap-4 p-4 hover:bg-muted/40 transition-colors">
+                <div className={`w-2 h-2 rounded-full shrink-0 ${log.success ? "bg-primary" : "bg-destructive"}`} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium text-sm">{tipoLabels[log.tipo_gatilho] ?? log.tipo_gatilho}</span>
+                    <Badge variant="outline" className="text-[10px]">{log.tipo_gatilho}</Badge>
+                    {log.response_status && (
+                      <Badge variant={log.success ? "default" : "destructive"} className="text-[10px]">
+                        HTTP {log.response_status}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {format(new Date(log.created_at), "dd/MM/yyyy HH:mm:ss")}
+                    {log.error && <span className="text-destructive"> · {log.error}</span>}
+                  </div>
+                </div>
+                <Button size="sm" variant="ghost" onClick={() => onView(log)}>
+                  <Eye className="h-4 w-4" />
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => onResend(log.id)} disabled={resending}>
+                  <Send className="h-4 w-4" />
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => onDelete(log.id)}>
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            ))}
+            {filtered.length === 0 && (
+              <div className="p-10 text-center text-sm text-muted-foreground">Nenhum log encontrado.</div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+      <Paginacao page={page} totalPages={totalPages} total={total} pageSize={pageSize} onChange={setPage} />
+    </>
+  );
+}
+
 type TestParams = { event: string; tarefa_id?: string; criativo_id?: string };
 
 function TestWebhookDialog({
