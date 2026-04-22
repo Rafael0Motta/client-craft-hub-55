@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, ArrowRight, Users, Search, UserCog } from "lucide-react";
 import { toast } from "sonner";
+import { Paginacao, usePaginacao } from "@/components/Paginacao";
 
 export const Route = createFileRoute("/app/clientes/")({
   component: ClientesPage,
