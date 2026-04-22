@@ -22,9 +22,13 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { taskStatusLabels, taskStatusOrder, taskPriorityLabels, funilLabels, funilOrder } from "@/lib/labels";
 import { StatusBadge, PriorityBadge } from "@/components/StatusBadge";
-import { Plus, Calendar, Search, Trash2 } from "lucide-react";
+import { Plus, Calendar, Search, Trash2, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import {
+  DndContext, type DragEndEvent, type DragStartEvent, DragOverlay,
+  PointerSensor, useSensor, useSensors, useDraggable, useDroppable,
+} from "@dnd-kit/core";
 
 export const Route = createFileRoute("/app/tarefas/")({
   component: TarefasPage,
