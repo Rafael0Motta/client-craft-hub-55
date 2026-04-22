@@ -107,7 +107,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex bg-background">
       {/* Sidebar desktop */}
-      <aside className="hidden lg:flex w-64 shrink-0 border-r border-sidebar-border">
+      <aside className="hidden lg:block w-64 shrink-0">
         <SidebarContent />
       </aside>
 
