@@ -45,7 +45,41 @@ function ClienteDetailPage() {
 
   const [editCampanhaOpen, setEditCampanhaOpen] = useState(false);
   const [editDetalhesOpen, setEditDetalhesOpen] = useState(false);
+  const [editGestoresOpen, setEditGestoresOpen] = useState(false);
   const [newTarefaOpen, setNewTarefaOpen] = useState(false);
+
+  // Lista de gestores disponíveis (apenas admin pode editar vínculos)
+  const { data: gestoresOptions } = useQuery({
+    queryKey: ["gestores-options"],
+    enabled: role === "admin",
+    queryFn: async () => {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "gestor");
+      const ids = (roles ?? []).map((r) => r.user_id);
+      if (!ids.length) return [] as Array<{ id: string; nome: string }>;
+      const { data } = await supabase.from("profiles").select("id, nome").in("id", ids);
+      return (data ?? []) as Array<{ id: string; nome: string }>;
+    },
+  });
+
+  const updateGestores = useMutation({
+    mutationFn: async (gestor_ids: string[]) => {
+      await adminApi.call({
+        action: "update_cliente_gestores",
+        cliente_id: id,
+        gestor_ids,
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["cliente-gestores", id] });
+      qc.invalidateQueries({ queryKey: ["clientes"] });
+      setEditGestoresOpen(false);
+      toast.success("Gestores atualizados");
+    },
+    onError: (e: Error) => toast.error("Erro", { description: e.message }),
+  });
 
   const deleteCliente = useMutation({
     mutationFn: async () => {
