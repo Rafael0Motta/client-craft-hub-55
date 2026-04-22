@@ -25,7 +25,7 @@ export function useTarefasRealtime() {
     };
 
     const channel = supabase
-      .channel("tarefas-realtime")
+      .channel(`tarefas-realtime-${Math.random().toString(36).slice(2, 10)}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "tarefas" },
