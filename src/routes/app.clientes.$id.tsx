@@ -600,3 +600,49 @@ function NewTarefaDialog({
     </DialogContent>
   );
 }
+
+function EditGestoresDialog({
+  options, initialIds, onSubmit, submitting,
+}: {
+  options: Array<{ id: string; nome: string }>;
+  initialIds: string[];
+  onSubmit: (ids: string[]) => void;
+  submitting: boolean;
+}) {
+  const [selected, setSelected] = useState<string[]>(initialIds);
+  useEffect(() => { setSelected(initialIds); }, [initialIds.join(",")]);
+
+  const toggle = (id: string) =>
+    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  return (
+    <DialogContent>
+      <DialogHeader><DialogTitle>Editar gestores responsáveis</DialogTitle></DialogHeader>
+      <div className="space-y-2">
+        <Label>Selecione um ou mais gestores</Label>
+        {options.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum gestor cadastrado.</p>
+        ) : (
+          <div className="border rounded-md divide-y max-h-72 overflow-y-auto">
+            {options.map((g) => (
+              <label key={g.id} className="flex items-center gap-2 p-2 cursor-pointer hover:bg-accent text-sm">
+                <input
+                  type="checkbox"
+                  checked={selected.includes(g.id)}
+                  onChange={() => toggle(g.id)}
+                />
+                <span>{g.nome}</span>
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
+      <DialogFooter>
+        <Button disabled={submitting} onClick={() => onSubmit(selected)}>
+          {submitting ? "Salvando…" : "Salvar"}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+}
+
