@@ -218,7 +218,73 @@ function ClientesPage() {
   );
 }
 
-function NewClienteDialog({
+function ClientesGrid({
+  isLoading, filtered, vinculos,
+}: {
+  isLoading: boolean;
+  filtered: ClienteRow[];
+  vinculos: Map<string, Array<{ id: string; nome: string }>> | undefined;
+}) {
+  const { page, setPage, total, totalPages, pageItems, pageSize } = usePaginacao(filtered);
+
+  if (isLoading) {
+    return <div className="text-sm text-muted-foreground">Carregando…</div>;
+  }
+  if (filtered.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-16 text-center text-muted-foreground">
+          <Users className="h-10 w-10 mx-auto mb-3 opacity-50" />
+          <p>Nenhum cliente encontrado.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+  return (
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {pageItems.map((c) => {
+          const gs = vinculos?.get(c.id) ?? [];
+          const principal = gs[0];
+          const extras = gs.length - 1;
+          return (
+            <Link key={c.id} to="/app/clientes/$id" params={{ id: c.id }}>
+              <Card className="hover:border-primary transition-colors cursor-pointer h-full">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-semibold text-lg leading-tight">{c.nome}</h3>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  {c.segmento && (
+                    <div className="text-xs uppercase tracking-wider text-brand font-semibold">
+                      {c.segmento}
+                    </div>
+                  )}
+                  <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                    <UserCog className="h-3.5 w-3.5" />
+                    {principal ? (
+                      <span className="truncate">
+                        {principal.nome}
+                        {extras > 0 && <span className="ml-1 text-brand font-semibold">+{extras}</span>}
+                      </span>
+                    ) : (
+                      <span className="italic">Sem gestor</span>
+                    )}
+                  </div>
+                  {c.campanha && (
+                    <p className="text-sm text-muted-foreground mt-3 line-clamp-2">{c.campanha}</p>
+                  )}
+                </CardContent>
+              </Card>
+            </Link>
+          );
+        })}
+      </div>
+      <Paginacao page={page} totalPages={totalPages} total={total} pageSize={pageSize} onChange={setPage} />
+    </>
+  );
+}
+
   gestores, clientesUsers, onSubmit, submitting,
 }: {
   gestores: Array<{ id: string; nome: string; email: string }>;
