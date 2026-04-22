@@ -215,6 +215,95 @@ function UsuariosPage() {
   );
 }
 
+type UserRow = {
+  id: string;
+  nome: string;
+  email: string;
+  telefone: string | null;
+  grupo_id: string | null;
+  role: string | null;
+};
+
+function UsuariosLista({
+  filtered, users, updateRole, setEditing, remove,
+}: {
+  filtered: UserRow[];
+  users: UserRow[];
+  updateRole: (p: { user_id: string; role: string }) => void;
+  setEditing: (u: EditUser) => void;
+  remove: (id: string) => void;
+}) {
+  const { page, setPage, total, totalPages, pageItems, pageSize } = usePaginacao(filtered);
+  return (
+    <>
+      <Card>
+        <CardContent className="p-0">
+          <div className="divide-y">
+            {pageItems.map((u) => (
+              <div key={u.id} className="p-4 flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="font-medium truncate">{u.nome}</div>
+                  <div className="text-xs text-muted-foreground truncate">{u.email}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Select
+                    value={u.role ?? ""}
+                    onValueChange={(v) => updateRole({ user_id: u.id, role: v })}
+                  >
+                    <SelectTrigger className="w-32"><SelectValue placeholder="—" /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(roleLabels).map(([v, l]) => (
+                        <SelectItem key={v} value={v}>{l}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button size="icon" variant="ghost" onClick={() => setEditing({
+                    id: u.id, nome: u.nome, email: u.email,
+                    telefone: u.telefone ?? null, grupo_id: u.grupo_id ?? null,
+                    role: u.role ?? null,
+                  })}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="icon" variant="ghost">
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Remover {u.nome}?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta ação é permanente. Se for um usuário-cliente, todos os clientes,
+                          tarefas e dados vinculados também serão removidos.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => remove(u.id)}>
+                          Remover
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+            ))}
+            {filtered.length === 0 && (
+              <div className="p-10 text-center text-sm text-muted-foreground">
+                {users.length === 0
+                  ? "Nenhum usuário ainda. Crie o primeiro!"
+                  : "Nenhum usuário corresponde aos filtros."}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+      <Paginacao page={page} totalPages={totalPages} total={total} pageSize={pageSize} onChange={setPage} />
+    </>
+  );
+}
+
 function EditUserDialog({
   user, onSubmit, submitting,
 }: {
