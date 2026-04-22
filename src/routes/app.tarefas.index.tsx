@@ -230,83 +230,14 @@ function TarefasPage() {
           </TabsList>
 
           <TabsContent value="kanban" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-              {taskStatusOrder.map((status) => {
-                const items = filtered.filter((t) => t.status === status);
-                return (
-                  <div key={status} className="bg-muted/40 rounded-lg p-3 min-h-[200px]">
-                    <div className="flex items-center justify-between mb-3 px-1">
-                      <h3 className="text-sm font-semibold">{taskStatusLabels[status]}</h3>
-                      <span className="text-xs text-muted-foreground">{items.length}</span>
-                    </div>
-                    <div className="space-y-2">
-                      {items.map((t) => (
-                        <Card key={t.id} className="hover:shadow-md transition-shadow">
-                          <CardContent className="p-3 space-y-2">
-                            <div className="flex items-start justify-between gap-2">
-                              <Link
-                                to="/app/tarefas/$id"
-                                params={{ id: t.id }}
-                                className="font-medium text-sm leading-tight hover:underline flex-1 min-w-0"
-                              >
-                                {t.titulo}
-                              </Link>
-                              {canDelete && (
-                                <button
-                                  onClick={(e) => { e.preventDefault(); setConfirmDelete(t); }}
-                                  className="text-muted-foreground hover:text-destructive shrink-0"
-                                  title="Excluir tarefa"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              )}
-                            </div>
-                            <div className="text-xs text-muted-foreground">{t.clientes?.nome ?? "—"}</div>
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              {t.tipos_tarefa?.nome && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-semibold uppercase tracking-wider">
-                                  {t.tipos_tarefa.nome}
-                                </span>
-                              )}
-                              {t.funil && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-semibold uppercase tracking-wider">
-                                  {funilLabels[t.funil]}
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <PriorityBadge priority={t.prioridade} />
-                              {t.prazo && (
-                                <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
-                                  Vence {format(new Date(t.prazo), "dd/MM/yyyy")}
-                                </span>
-                              )}
-                            </div>
-                            {role !== "cliente" && (
-                              <div className="text-[11px] text-muted-foreground space-y-0.5 pt-1 border-t">
-                                <div>Criada em {format(new Date(t.created_at), "dd/MM/yyyy")}</div>
-                                <div>Por {t.profiles?.nome ?? "—"}</div>
-                              </div>
-                            )}
-                            {(role === "admin" || role === "gestor") && (
-                              <Select value={t.status} onValueChange={(v) => updateStatus.mutate({ id: t.id, status: v })}>
-                                <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                  {taskStatusOrder.map((s) => (
-                                    <SelectItem key={s} value={s}>{taskStatusLabels[s]}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            )}
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <KanbanBoard
+              tarefas={filtered}
+              canDrag={role === "admin" || role === "gestor"}
+              canDelete={canDelete}
+              role={role}
+              onMove={(id, status) => updateStatus.mutate({ id, status })}
+              onDelete={(t) => setConfirmDelete(t)}
+            />
           </TabsContent>
 
           <TabsContent value="lista" className="mt-6">
