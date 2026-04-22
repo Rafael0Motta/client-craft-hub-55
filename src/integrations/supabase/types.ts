@@ -239,6 +239,60 @@ export type Database = {
           },
         ]
       }
+      notificacoes: {
+        Row: {
+          created_at: string
+          criativo_id: string | null
+          id: string
+          lida: boolean
+          link: string | null
+          mensagem: string | null
+          tarefa_id: string | null
+          tipo: Database["public"]["Enums"]["notification_type"]
+          titulo: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          criativo_id?: string | null
+          id?: string
+          lida?: boolean
+          link?: string | null
+          mensagem?: string | null
+          tarefa_id?: string | null
+          tipo: Database["public"]["Enums"]["notification_type"]
+          titulo: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          criativo_id?: string | null
+          id?: string
+          lida?: boolean
+          link?: string | null
+          mensagem?: string | null
+          tarefa_id?: string | null
+          tipo?: Database["public"]["Enums"]["notification_type"]
+          titulo?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacoes_criativo_id_fkey"
+            columns: ["criativo_id"]
+            isOneToOne: false
+            referencedRelation: "criativos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notificacoes_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -271,6 +325,76 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      tarefa_atividades: {
+        Row: {
+          ator_id: string | null
+          created_at: string
+          id: string
+          metadata: Json
+          tarefa_id: string
+          tipo: Database["public"]["Enums"]["activity_type"]
+        }
+        Insert: {
+          ator_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          tarefa_id: string
+          tipo: Database["public"]["Enums"]["activity_type"]
+        }
+        Update: {
+          ator_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          tarefa_id?: string
+          tipo?: Database["public"]["Enums"]["activity_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefa_atividades_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tarefa_comentarios: {
+        Row: {
+          autor_id: string | null
+          created_at: string
+          id: string
+          tarefa_id: string
+          texto: string
+          updated_at: string
+        }
+        Insert: {
+          autor_id?: string | null
+          created_at?: string
+          id?: string
+          tarefa_id: string
+          texto: string
+          updated_at?: string
+        }
+        Update: {
+          autor_id?: string | null
+          created_at?: string
+          id?: string
+          tarefa_id?: string
+          texto?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefa_comentarios_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tarefas: {
         Row: {
@@ -418,6 +542,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _notif_recipients: {
+        Args: { _ator_id: string; _tarefa_id: string }
+        Returns: {
+          user_id: string
+        }[]
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -440,10 +570,25 @@ export type Database = {
       }
     }
     Enums: {
+      activity_type:
+        | "tarefa_criada"
+        | "tarefa_status_alterado"
+        | "criativo_enviado"
+        | "criativo_aprovado"
+        | "criativo_reprovado"
+        | "comentario_adicionado"
       app_role: "admin" | "gestor" | "cliente"
       creative_op_status: "ativo" | "desativado" | "standby"
       creative_status: "pendente_aprovacao" | "aprovado" | "reprovado"
       funil_classificacao: "topo" | "meio" | "fundo"
+      notification_type:
+        | "tarefa_atribuida"
+        | "tarefa_status_alterado"
+        | "criativo_pendente"
+        | "criativo_aprovado"
+        | "criativo_reprovado"
+        | "comentario_tarefa"
+        | "comentario_criativo"
       task_priority: "baixa" | "media" | "alta" | "urgente"
       task_status:
         | "pendente"
@@ -577,10 +722,27 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      activity_type: [
+        "tarefa_criada",
+        "tarefa_status_alterado",
+        "criativo_enviado",
+        "criativo_aprovado",
+        "criativo_reprovado",
+        "comentario_adicionado",
+      ],
       app_role: ["admin", "gestor", "cliente"],
       creative_op_status: ["ativo", "desativado", "standby"],
       creative_status: ["pendente_aprovacao", "aprovado", "reprovado"],
       funil_classificacao: ["topo", "meio", "fundo"],
+      notification_type: [
+        "tarefa_atribuida",
+        "tarefa_status_alterado",
+        "criativo_pendente",
+        "criativo_aprovado",
+        "criativo_reprovado",
+        "comentario_tarefa",
+        "comentario_criativo",
+      ],
       task_priority: ["baixa", "media", "alta", "urgente"],
       task_status: [
         "pendente",
