@@ -43,8 +43,10 @@ export function useNotifications() {
   // Realtime com debounce — bursts de eventos só causam um refetch.
   useEffect(() => {
     if (!userId) return;
+    // Nome único por montagem evita conflito com StrictMode (double-invoke)
+    // que tentaria registrar callbacks após subscribe() no mesmo canal.
     const channel = supabase
-      .channel(`notif-${userId}`)
+      .channel(`notif-${userId}-${Math.random().toString(36).slice(2, 10)}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "notificacoes", filter: `user_id=eq.${userId}` },
