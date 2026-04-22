@@ -44,7 +44,18 @@ interface UpdateUserBody {
 }
 interface DeleteBody { action: "delete"; user_id: string; }
 interface DeleteClienteBody { action: "delete_cliente"; cliente_id: string; }
-type Body = CreateBody | UpdateRoleBody | UpdateUserBody | DeleteBody | DeleteClienteBody;
+interface UpdateClienteGestoresBody {
+  action: "update_cliente_gestores";
+  cliente_id: string;
+  gestor_ids: string[];
+}
+type Body =
+  | CreateBody
+  | UpdateRoleBody
+  | UpdateUserBody
+  | DeleteBody
+  | DeleteClienteBody
+  | UpdateClienteGestoresBody;
 
 function jsonResponse(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
