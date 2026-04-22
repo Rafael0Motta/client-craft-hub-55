@@ -22,6 +22,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Trash2, Search, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { roleLabels } from "@/lib/labels";
+import { adminApi } from "@/lib/admin-api";
 
 export const Route = createFileRoute("/app/usuarios/")({
   component: () => (
@@ -81,23 +82,7 @@ function UsuariosPage() {
     });
   }, [users, roleFilter, search]);
 
-  const callAdmin = async (body: object) => {
-    const { data: session } = await supabase.auth.getSession();
-    const token = session.session?.access_token;
-    const anon = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: anon,
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(body),
-    });
-    const json = await res.json();
-    if (!res.ok) throw new Error(json.error ?? "Erro");
-    return json;
-  };
+  const callAdmin = (body: object) => adminApi.call(body);
 
   const create = useMutation({
     mutationFn: (p: object) => callAdmin({ action: "create", ...p }),
