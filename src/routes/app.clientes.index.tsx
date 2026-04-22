@@ -285,14 +285,15 @@ function ClientesGrid({
   );
 }
 
-function NewClienteDialog({
-  gestores, clientesUsers, onSubmit, submitting,
-}: {
+type NewClienteDialogProps = {
   gestores: Array<{ id: string; nome: string; email: string }>;
   clientesUsers: Array<{ id: string; nome: string; email: string }>;
   onSubmit: (p: { nome: string; segmento: string; campanha: string; drive_folder_url: string; user_id: string | null; gestor_ids: string[] }) => void;
   submitting: boolean;
-}) {
+};
+
+function NewClienteDialog(props: NewClienteDialogProps) {
+  const { gestores, clientesUsers, onSubmit, submitting } = props;
   const [nome, setNome] = useState("");
   const [segmento, setSegmento] = useState("");
   const [campanha, setCampanha] = useState("");
