@@ -5,6 +5,7 @@ import { roleLabels } from "@/lib/labels";
 import { LayoutDashboard, Users, ListTodo, UserCog, LogOut, Webhook, Menu, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { NotificationsBell } from "@/components/NotificationsBell";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -37,8 +38,8 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className="h-full flex flex-col bg-sidebar text-sidebar-foreground">
-      <div className="px-6 py-6 border-b border-sidebar-border">
-        <Link to="/app" onClick={onNavigate} className="block">
+      <div className="px-6 py-6 border-b border-sidebar-border flex items-center justify-between gap-2">
+        <Link to="/app" onClick={onNavigate} className="block min-w-0">
           <div className="text-2xl font-black tracking-tight leading-none">
             OLD<span className="text-sidebar-primary">LAB</span>
           </div>
@@ -46,6 +47,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             Client System
           </div>
         </Link>
+        <NotificationsBell variant="sidebar" />
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
@@ -127,7 +129,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Link to="/app" className="text-lg font-black tracking-tight">
             OLD<span className="text-sidebar-primary">LAB</span>
           </Link>
-          <div className="w-9" />
+          <NotificationsBell variant="sidebar" />
         </header>
 
         <main className="flex-1 min-w-0 overflow-x-hidden">{children}</main>

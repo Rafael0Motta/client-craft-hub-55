@@ -22,9 +22,13 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { taskStatusLabels, taskStatusOrder, taskPriorityLabels, funilLabels, funilOrder } from "@/lib/labels";
 import { StatusBadge, PriorityBadge } from "@/components/StatusBadge";
-import { Plus, Calendar, Search, Trash2 } from "lucide-react";
+import { Plus, Calendar, Search, Trash2, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import {
+  DndContext, type DragEndEvent, type DragStartEvent, DragOverlay,
+  PointerSensor, useSensor, useSensors, useDraggable, useDroppable,
+} from "@dnd-kit/core";
 
 export const Route = createFileRoute("/app/tarefas/")({
   component: TarefasPage,
@@ -226,83 +230,14 @@ function TarefasPage() {
           </TabsList>
 
           <TabsContent value="kanban" className="mt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-              {taskStatusOrder.map((status) => {
-                const items = filtered.filter((t) => t.status === status);
-                return (
-                  <div key={status} className="bg-muted/40 rounded-lg p-3 min-h-[200px]">
-                    <div className="flex items-center justify-between mb-3 px-1">
-                      <h3 className="text-sm font-semibold">{taskStatusLabels[status]}</h3>
-                      <span className="text-xs text-muted-foreground">{items.length}</span>
-                    </div>
-                    <div className="space-y-2">
-                      {items.map((t) => (
-                        <Card key={t.id} className="hover:shadow-md transition-shadow">
-                          <CardContent className="p-3 space-y-2">
-                            <div className="flex items-start justify-between gap-2">
-                              <Link
-                                to="/app/tarefas/$id"
-                                params={{ id: t.id }}
-                                className="font-medium text-sm leading-tight hover:underline flex-1 min-w-0"
-                              >
-                                {t.titulo}
-                              </Link>
-                              {canDelete && (
-                                <button
-                                  onClick={(e) => { e.preventDefault(); setConfirmDelete(t); }}
-                                  className="text-muted-foreground hover:text-destructive shrink-0"
-                                  title="Excluir tarefa"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              )}
-                            </div>
-                            <div className="text-xs text-muted-foreground">{t.clientes?.nome ?? "—"}</div>
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              {t.tipos_tarefa?.nome && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-semibold uppercase tracking-wider">
-                                  {t.tipos_tarefa.nome}
-                                </span>
-                              )}
-                              {t.funil && (
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-semibold uppercase tracking-wider">
-                                  {funilLabels[t.funil]}
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <PriorityBadge priority={t.prioridade} />
-                              {t.prazo && (
-                                <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
-                                  Vence {format(new Date(t.prazo), "dd/MM/yyyy")}
-                                </span>
-                              )}
-                            </div>
-                            {role !== "cliente" && (
-                              <div className="text-[11px] text-muted-foreground space-y-0.5 pt-1 border-t">
-                                <div>Criada em {format(new Date(t.created_at), "dd/MM/yyyy")}</div>
-                                <div>Por {t.profiles?.nome ?? "—"}</div>
-                              </div>
-                            )}
-                            {(role === "admin" || role === "gestor") && (
-                              <Select value={t.status} onValueChange={(v) => updateStatus.mutate({ id: t.id, status: v })}>
-                                <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                  {taskStatusOrder.map((s) => (
-                                    <SelectItem key={s} value={s}>{taskStatusLabels[s]}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            )}
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <KanbanBoard
+              tarefas={filtered}
+              canDrag={role === "admin" || role === "gestor"}
+              canDelete={canDelete}
+              role={role}
+              onMove={(id, status) => updateStatus.mutate({ id, status })}
+              onDelete={(t) => setConfirmDelete(t)}
+            />
           </TabsContent>
 
           <TabsContent value="lista" className="mt-6">
@@ -462,5 +397,193 @@ function NewTarefaDialog({
         </Button>
       </DialogFooter>
     </DialogContent>
+  );
+}
+
+// ============================================================
+// Kanban com drag-and-drop
+// ============================================================
+
+function KanbanBoard({
+  tarefas, canDrag, canDelete, role, onMove, onDelete,
+}: {
+  tarefas: Tarefa[];
+  canDrag: boolean;
+  canDelete: boolean;
+  role: string | null;
+  onMove: (id: string, status: string) => void;
+  onDelete: (t: Tarefa) => void;
+}) {
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  const handleDragStart = (e: DragStartEvent) => setActiveId(String(e.active.id));
+  const handleDragEnd = (e: DragEndEvent) => {
+    setActiveId(null);
+    const { active, over } = e;
+    if (!over) return;
+    const id = String(active.id);
+    const newStatus = String(over.id);
+    const t = tarefas.find((x) => x.id === id);
+    if (t && t.status !== newStatus) onMove(id, newStatus);
+  };
+
+  const activeTarefa = activeId ? tarefas.find((t) => t.id === activeId) : null;
+
+  return (
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        {taskStatusOrder.map((status) => {
+          const items = tarefas.filter((t) => t.status === status);
+          return (
+            <KanbanColumn key={status} status={status} count={items.length}>
+              {items.map((t) => (
+                <KanbanCard
+                  key={t.id}
+                  tarefa={t}
+                  canDrag={canDrag}
+                  canDelete={canDelete}
+                  role={role}
+                  onDelete={onDelete}
+                />
+              ))}
+              {items.length === 0 && (
+                <div className="text-xs text-muted-foreground text-center py-6 border border-dashed rounded">
+                  Solte aqui
+                </div>
+              )}
+            </KanbanColumn>
+          );
+        })}
+      </div>
+      <DragOverlay>
+        {activeTarefa ? (
+          <div className="opacity-90 rotate-2">
+            <KanbanCardContent tarefa={activeTarefa} role={role} />
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
+  );
+}
+
+function KanbanColumn({
+  status, count, children,
+}: { status: string; count: number; children: React.ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id: status });
+  return (
+    <div
+      ref={setNodeRef}
+      className={`bg-muted/40 rounded-lg p-3 min-h-[200px] transition-colors ${
+        isOver ? "bg-primary/10 ring-2 ring-primary/40" : ""
+      }`}
+    >
+      <div className="flex items-center justify-between mb-3 px-1">
+        <h3 className="text-sm font-semibold">{taskStatusLabels[status]}</h3>
+        <span className="text-xs text-muted-foreground">{count}</span>
+      </div>
+      <div className="space-y-2">{children}</div>
+    </div>
+  );
+}
+
+function KanbanCard({
+  tarefa, canDrag, canDelete, role, onDelete,
+}: {
+  tarefa: Tarefa;
+  canDrag: boolean;
+  canDelete: boolean;
+  role: string | null;
+  onDelete: (t: Tarefa) => void;
+}) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: tarefa.id,
+    disabled: !canDrag,
+  });
+
+  return (
+    <Card
+      ref={setNodeRef}
+      className={`hover:shadow-md transition-shadow ${isDragging ? "opacity-30" : ""}`}
+    >
+      <CardContent className="p-3 space-y-2">
+        <div className="flex items-start justify-between gap-2">
+          {canDrag && (
+            <button
+              {...attributes}
+              {...listeners}
+              className="text-muted-foreground hover:text-foreground cursor-grab active:cursor-grabbing shrink-0 mt-0.5"
+              title="Arrastar"
+              aria-label="Arrastar tarefa"
+            >
+              <GripVertical className="h-4 w-4" />
+            </button>
+          )}
+          <Link
+            to="/app/tarefas/$id"
+            params={{ id: tarefa.id }}
+            className="font-medium text-sm leading-tight hover:underline flex-1 min-w-0"
+          >
+            {tarefa.titulo}
+          </Link>
+          {canDelete && (
+            <button
+              onClick={(e) => { e.preventDefault(); onDelete(tarefa); }}
+              className="text-muted-foreground hover:text-destructive shrink-0"
+              title="Excluir tarefa"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+        <KanbanCardBody tarefa={tarefa} role={role} />
+      </CardContent>
+    </Card>
+  );
+}
+
+function KanbanCardContent({ tarefa, role }: { tarefa: Tarefa; role: string | null }) {
+  return (
+    <Card>
+      <CardContent className="p-3 space-y-2">
+        <div className="font-medium text-sm leading-tight">{tarefa.titulo}</div>
+        <KanbanCardBody tarefa={tarefa} role={role} />
+      </CardContent>
+    </Card>
+  );
+}
+
+function KanbanCardBody({ tarefa, role }: { tarefa: Tarefa; role: string | null }) {
+  return (
+    <>
+      <div className="text-xs text-muted-foreground">{tarefa.clientes?.nome ?? "—"}</div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {tarefa.tipos_tarefa?.nome && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-semibold uppercase tracking-wider">
+            {tarefa.tipos_tarefa.nome}
+          </span>
+        )}
+        {tarefa.funil && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-semibold uppercase tracking-wider">
+            {funilLabels[tarefa.funil]}
+          </span>
+        )}
+      </div>
+      <div className="flex items-center justify-between">
+        <PriorityBadge priority={tarefa.prioridade} />
+        {tarefa.prazo && (
+          <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
+            <Calendar className="h-3 w-3" />
+            Vence {format(new Date(tarefa.prazo), "dd/MM/yyyy")}
+          </span>
+        )}
+      </div>
+      {role !== "cliente" && (
+        <div className="text-[11px] text-muted-foreground space-y-0.5 pt-1 border-t">
+          <div>Criada em {format(new Date(tarefa.created_at), "dd/MM/yyyy")}</div>
+          <div>Por {tarefa.profiles?.nome ?? "—"}</div>
+        </div>
+      )}
+    </>
   );
 }
