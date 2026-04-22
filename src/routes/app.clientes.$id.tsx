@@ -302,7 +302,24 @@ function ClienteDetailPage() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div>
-              <div className="text-xs uppercase tracking-wider text-muted-foreground">Gestores</div>
+              <div className="flex items-center justify-between">
+                <div className="text-xs uppercase tracking-wider text-muted-foreground">Gestores</div>
+                {role === "admin" && (
+                  <Dialog open={editGestoresOpen} onOpenChange={setEditGestoresOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" variant="ghost" className="h-6 px-2 text-xs">
+                        <Pencil className="h-3 w-3 mr-1" /> Editar
+                      </Button>
+                    </DialogTrigger>
+                    <EditGestoresDialog
+                      options={gestoresOptions ?? []}
+                      initialIds={(gestores ?? []).map((g) => g.id)}
+                      onSubmit={(ids) => updateGestores.mutate(ids)}
+                      submitting={updateGestores.isPending}
+                    />
+                  </Dialog>
+                )}
+              </div>
               {(gestores ?? []).length === 0 ? (
                 <div className="font-medium">Não atribuído</div>
               ) : (
