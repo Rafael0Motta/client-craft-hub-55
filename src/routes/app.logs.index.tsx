@@ -225,48 +225,14 @@ function LogsPage() {
         </CardContent>
       </Card>
 
-      {isLoading ? (
-        <div className="text-sm text-muted-foreground">Carregando…</div>
-      ) : (
-        <Card>
-          <CardContent className="p-0">
-            <div className="divide-y">
-              {filtered.map((log) => (
-                <div key={log.id} className="flex items-center gap-4 p-4 hover:bg-muted/40 transition-colors">
-                  <div className={`w-2 h-2 rounded-full shrink-0 ${log.success ? "bg-primary" : "bg-destructive"}`} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium text-sm">{tipoLabels[log.tipo_gatilho] ?? log.tipo_gatilho}</span>
-                      <Badge variant="outline" className="text-[10px]">{log.tipo_gatilho}</Badge>
-                      {log.response_status && (
-                        <Badge variant={log.success ? "default" : "destructive"} className="text-[10px]">
-                          HTTP {log.response_status}
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-0.5">
-                      {format(new Date(log.created_at), "dd/MM/yyyy HH:mm:ss")}
-                      {log.error && <span className="text-destructive"> · {log.error}</span>}
-                    </div>
-                  </div>
-                  <Button size="sm" variant="ghost" onClick={() => setViewing(log)}>
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => resend.mutate(log.id)} disabled={resend.isPending}>
-                    <Send className="h-4 w-4" />
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => deleteLog.mutate(log.id)}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              ))}
-              {filtered.length === 0 && (
-                <div className="p-10 text-center text-sm text-muted-foreground">Nenhum log encontrado.</div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <LogsLista
+        isLoading={isLoading}
+        filtered={filtered}
+        onView={setViewing}
+        onResend={(id) => resend.mutate(id)}
+        onDelete={(id) => deleteLog.mutate(id)}
+        resending={resend.isPending}
+      />
 
       <Dialog open={!!viewing} onOpenChange={(o) => !o && setViewing(null)}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
