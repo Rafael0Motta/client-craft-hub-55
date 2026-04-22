@@ -24,6 +24,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useNavigate } from "@tanstack/react-router";
+import { adminApi } from "@/lib/admin-api";
 
 export const Route = createFileRoute("/app/clientes/$id")({
   component: ClienteDetailPage,
