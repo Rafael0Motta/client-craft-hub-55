@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { StatusBadge, PriorityBadge } from "@/components/StatusBadge";
 import { CriativosSection } from "@/components/CriativosSection";
+import { TarefaComentarios } from "@/components/TarefaComentarios";
 import { taskStatusOrder, taskStatusLabels, taskPriorityLabels, funilLabels, funilOrder } from "@/lib/labels";
 import { ArrowLeft, Calendar, User as UserIcon, Building2, Pencil } from "lucide-react";
 import { format } from "date-fns";
@@ -237,6 +238,8 @@ function TarefaDetalhePage() {
         clienteId={tarefa.cliente_id}
         tipoTarefaNome={tarefa.tipos_tarefa?.nome ?? null}
       />
+
+      <TarefaComentarios tarefaId={tarefa.id} />
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <EditTarefaDialog
