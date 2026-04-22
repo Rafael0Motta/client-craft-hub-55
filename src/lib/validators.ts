@@ -113,5 +113,5 @@ export type UserUpdateInput = z.infer<typeof userUpdateSchema>;
 
 /** Formata erros Zod em uma string única para exibir em toast. */
 export function formatZodErrors(error: z.ZodError): string {
-  return error.errors.map((e) => e.message).join(" • ");
+  return error.issues.map((e) => e.message).join(" • ");
 }
