@@ -23,6 +23,7 @@ import { Plus, Trash2, Search, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { roleLabels } from "@/lib/labels";
 import { adminApi } from "@/lib/admin-api";
+import { Paginacao, usePaginacao } from "@/components/Paginacao";
 
 export const Route = createFileRoute("/app/usuarios/")({
   component: () => (
