@@ -142,6 +142,37 @@ function UsuariosPage() {
         }
       />
 
+      {(() => {
+        const list = users ?? [];
+        const total = list.length;
+        const admins = list.filter((u) => u.role === "admin").length;
+        const gest = list.filter((u) => u.role === "gestor").length;
+        const cli = list.filter((u) => u.role === "cliente").length;
+        const stats: Array<{ label: string; value: number; key: RoleFilter }> = [
+          { label: "Total", value: total, key: "all" },
+          { label: "Admins", value: admins, key: "admin" },
+          { label: "Gestores", value: gest, key: "gestor" },
+          { label: "Clientes", value: cli, key: "cliente" },
+        ];
+        return (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+            {stats.map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => setRoleFilter(s.key)}
+                className={`text-left rounded-lg border p-3 transition-colors hover:bg-accent ${
+                  roleFilter === s.key ? "border-primary bg-accent" : ""
+                }`}
+              >
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">{s.label}</div>
+                <div className="text-2xl font-bold leading-tight">{s.value}</div>
+              </button>
+            ))}
+          </div>
+        );
+      })()}
+
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <Tabs value={roleFilter} onValueChange={(v) => setRoleFilter(v as RoleFilter)}>
           <TabsList>
