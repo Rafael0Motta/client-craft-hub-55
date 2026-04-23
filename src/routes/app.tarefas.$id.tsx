@@ -78,12 +78,13 @@ function TarefaDetalhePage() {
       if (!data) return null;
       let criador: { nome: string } | null = null;
       if (data.criado_por) {
-        const { data: prof } = await supabase
-          .from("profiles")
-          .select("nome")
-          .eq("id", data.criado_por)
-          .maybeSingle();
-        criador = prof ?? null;
+        // Usa RPC SECURITY DEFINER porque o RLS de profiles impede que gestores
+        // vejam profiles de admins (e vice-versa). A RPC retorna apenas o nome.
+        const { data: rows } = await supabase.rpc("get_profile_names", {
+          _ids: [data.criado_por],
+        });
+        const first = (rows ?? [])[0] as { nome: string } | undefined;
+        criador = first ? { nome: first.nome } : null;
       }
       return { ...data, profiles: criador } as unknown as TarefaDetalhe;
     },
