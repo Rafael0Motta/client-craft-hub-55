@@ -328,6 +328,112 @@ function EnvioCriativoForm({
     } finally { setUploading(false); }
   };
 
+  // ─────────── MODO SIMPLES (cliente em uma tarefa) ───────────
+  // Para clientes dentro de uma tarefa, mostra interface enxuta e visual:
+  // sem dropdowns "Tipo/Origem", uma única CTA grande.
+  const isClienteSimples = role === "cliente" && !!tarefaIdFixo;
+
+  if (isClienteSimples) {
+    const aceitaLink = isCriativoEffective || sourceMode === "link";
+    return (
+      <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
+        <CardContent className="p-6 space-y-5">
+          <div className="text-center space-y-2">
+            <div className="mx-auto h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center">
+              {aceitaLink ? <LinkIcon className="h-7 w-7 text-primary" /> : <Upload className="h-7 w-7 text-primary" />}
+            </div>
+            <h3 className="text-lg font-bold">
+              {aceitaLink ? "Enviar criativo por link" : "Enviar criativo"}
+            </h3>
+            <p className="text-sm text-muted-foreground max-w-md mx-auto">
+              {aceitaLink
+                ? "Cole abaixo o link do seu criativo (Google Drive, Dropbox, WeTransfer, YouTube etc.) e clique em Enviar."
+                : "Escolha um arquivo do seu computador OU envie por link."}
+            </p>
+          </div>
+
+          {!isCriativoEffective && (
+            <div className="flex items-center justify-center gap-2 text-xs">
+              <button
+                type="button"
+                onClick={() => setSourceMode("arquivo")}
+                className={`px-3 py-1.5 rounded-full font-semibold transition ${
+                  sourceMode === "arquivo" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70"
+                }`}
+              >
+                📁 Enviar arquivo
+              </button>
+              <button
+                type="button"
+                onClick={() => setSourceMode("link")}
+                className={`px-3 py-1.5 rounded-full font-semibold transition ${
+                  sourceMode === "link" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70"
+                }`}
+              >
+                🔗 Enviar link
+              </button>
+            </div>
+          )}
+
+          {aceitaLink ? (
+            <div className="space-y-3 max-w-xl mx-auto">
+              <Input
+                placeholder="https://drive.google.com/..."
+                value={linkUrl}
+                onChange={(e) => setLinkUrl(e.target.value)}
+                className="h-12 text-base"
+              />
+              <Textarea
+                rows={2}
+                placeholder="Mensagem ou observação (opcional)"
+                value={descricao}
+                onChange={(e) => setDescricao(e.target.value)}
+              />
+              <Button
+                size="lg"
+                className="w-full h-12 text-base font-semibold"
+                disabled={!linkUrl || uploading}
+                onClick={handleLink}
+              >
+                <LinkIcon className="h-5 w-5 mr-2" />
+                {uploading ? "Enviando…" : "Enviar criativo"}
+              </Button>
+              <p className="text-[11px] text-center text-muted-foreground">
+                💡 Dica: certifique-se de que o link está com permissão de visualização aberta.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3 max-w-xl mx-auto">
+              <input
+                ref={fileInput}
+                type="file"
+                className="hidden"
+                onChange={(e) => e.target.files?.[0] && handleArquivo(e.target.files[0])}
+              />
+              <button
+                type="button"
+                onClick={() => fileInput.current?.click()}
+                disabled={uploading}
+                className="w-full border-2 border-dashed border-primary/40 rounded-xl py-10 px-6 hover:bg-primary/5 transition flex flex-col items-center gap-2 disabled:opacity-60"
+              >
+                <Upload className="h-10 w-10 text-primary" />
+                <span className="font-semibold">{uploading ? "Enviando…" : "Clique aqui para escolher um arquivo"}</span>
+                <span className="text-xs text-muted-foreground">Imagem, vídeo, PDF, etc.</span>
+              </button>
+              <Textarea
+                rows={2}
+                placeholder="Mensagem ou observação (opcional)"
+                value={descricao}
+                onChange={(e) => setDescricao(e.target.value)}
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // ─────────── MODO COMPLETO (admin/gestor ou tarefa global) ───────────
   return (
     <Card>
       <CardContent className="p-5 space-y-3">
