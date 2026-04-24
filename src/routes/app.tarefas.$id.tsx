@@ -280,7 +280,7 @@ function TarefaDetalhePage() {
             : (isCriativo ? "Criativos vinculados" : "Entregas e respostas")}
         </h2>
         {!isCliente && (
-          <p className="text-sm text-muted-foreference">
+          <p className="text-sm text-muted-foreground">
             {isCriativo
               ? "Tarefas do tipo Criativo aceitam apenas links (URLs)."
               : "Arquivos, links e mensagens enviados pelo cliente para esta tarefa."}
