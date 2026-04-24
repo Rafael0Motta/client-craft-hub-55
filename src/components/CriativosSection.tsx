@@ -730,17 +730,6 @@ function CriativoCard({
               </div>
               <div className="flex flex-col items-end gap-1 shrink-0">
                 <StatusBadge status={status} kind="creative" />
-                <span className={`text-[10px] px-1.5 py-0.5 rounded border font-semibold uppercase tracking-wider ${
-                  criativo.status_operacional === "ativo"
-                    ? "bg-[var(--status-approved)]/15 text-[var(--status-approved)] border-[var(--status-approved)]/30"
-                    : criativo.status_operacional === "standby"
-                    ? "bg-[var(--status-pending)]/15 text-[var(--status-pending)] border-[var(--status-pending)]/30"
-                    : "bg-muted text-muted-foreground border-border"
-                }`}>
-                  {criativo.status_operacional === "ativo" ? "Ativo"
-                    : criativo.status_operacional === "standby" ? "Standby"
-                    : "Desativado"}
-                </span>
               </div>
             </div>
 
