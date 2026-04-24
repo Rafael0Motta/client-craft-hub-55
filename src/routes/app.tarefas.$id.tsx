@@ -19,7 +19,7 @@ import { StatusBadge, PriorityBadge } from "@/components/StatusBadge";
 import { CriativosSection } from "@/components/CriativosSection";
 import { TarefaComentarios } from "@/components/TarefaComentarios";
 import { taskStatusOrder, taskStatusLabels, taskPriorityLabels, funilLabels, funilOrder } from "@/lib/labels";
-import { ArrowLeft, Calendar, User as UserIcon, Building2, Pencil } from "lucide-react";
+import { ArrowLeft, Calendar, User as UserIcon, Building2, Pencil, Play, Pause } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
