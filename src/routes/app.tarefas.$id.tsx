@@ -118,6 +118,23 @@ function TarefaDetalhePage() {
     onError: (e: Error) => toast.error("Erro ao atualizar", { description: e.message }),
   });
 
+  // Permite que o cliente alterne o status da própria tarefa entre Pendente e Em andamento.
+  const toggleAndamento = useMutation({
+    mutationFn: async (novoStatus: "pendente" | "em_andamento") => {
+      const { error } = await supabase
+        .from("tarefas")
+        .update({ status: novoStatus as never })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tarefa", id] });
+      qc.invalidateQueries({ queryKey: ["tarefas"] });
+      toast.success("Status atualizado");
+    },
+    onError: (e: Error) => toast.error("Erro ao atualizar status", { description: e.message }),
+  });
+
   const canEdit = role === "admin" || role === "gestor";
 
   if (isLoading) return <div className="text-sm text-muted-foreground">Carregando…</div>;
