@@ -182,7 +182,7 @@ function TarefasPage() {
         }
       />
 
-      <TarefaFiltersBar filters={filters} setFilter={setFilter} clientes={clientesParaFiltro} />
+      <TarefaFiltersBar filters={filters} setFilter={setFilter} clientes={clientesParaFiltro} showClienteFilter={role !== "cliente"} />
 
       {isLoading ? (
         <div className="text-sm text-muted-foreground">Carregando…</div>
