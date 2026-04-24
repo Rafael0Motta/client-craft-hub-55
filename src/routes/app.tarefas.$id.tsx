@@ -274,12 +274,16 @@ function TarefaDetalhePage() {
       </Card>
 
       <div className="mb-3">
-        <h2 className="text-lg font-semibold">{isCliente ? "Envie seu criativo" : "Criativos vinculados"}</h2>
+        <h2 className="text-lg font-semibold">
+          {isCliente
+            ? (isCriativo ? "Envie seu criativo" : "Envie sua resposta")
+            : (isCriativo ? "Criativos vinculados" : "Entregas e respostas")}
+        </h2>
         {!isCliente && (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreference">
             {isCriativo
               ? "Tarefas do tipo Criativo aceitam apenas links (URLs)."
-              : "Envie e acompanhe os criativos desta tarefa."}
+              : "Arquivos, links e mensagens enviados pelo cliente para esta tarefa."}
           </p>
         )}
       </div>
