@@ -49,14 +49,16 @@ export const TarefaFiltersBar = memo(function TarefaFiltersBar({
   filters,
   setFilter,
   clientes,
+  showClienteFilter = true,
 }: {
   filters: TarefaFilters;
   setFilter: <K extends keyof TarefaFilters>(key: K, value: TarefaFilters[K]) => void;
   clientes: ClienteMini[];
+  showClienteFilter?: boolean;
 }): ReactNode {
   return (
     <Card className="mb-4">
-      <CardContent className="p-4 grid grid-cols-1 md:grid-cols-4 gap-3">
+      <CardContent className={`p-4 grid grid-cols-1 gap-3 ${showClienteFilter ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -84,15 +86,17 @@ export const TarefaFiltersBar = memo(function TarefaFiltersBar({
             ))}
           </SelectContent>
         </Select>
-        <Select value={filters.cliente} onValueChange={(v) => setFilter("cliente", v)}>
-          <SelectTrigger><SelectValue placeholder="Cliente" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os clientes</SelectItem>
-            {clientes.map((c) => (
-              <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {showClienteFilter && (
+          <Select value={filters.cliente} onValueChange={(v) => setFilter("cliente", v)}>
+            <SelectTrigger><SelectValue placeholder="Cliente" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os clientes</SelectItem>
+              {clientes.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </CardContent>
     </Card>
   );
