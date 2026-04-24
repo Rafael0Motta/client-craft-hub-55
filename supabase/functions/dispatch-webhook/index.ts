@@ -170,7 +170,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const event = body.event as EventType | "cron";
+    const event = body.event as EventType | "cron" | "resend";
 
     if (event === "createTask" && body.tarefa_id) {
       const payload = await buildTaskPayload(body.tarefa_id);
