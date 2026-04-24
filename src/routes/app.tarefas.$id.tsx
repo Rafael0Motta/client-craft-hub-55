@@ -292,6 +292,7 @@ function TarefaDetalhePage() {
         tarefaId={tarefa.id}
         clienteId={tarefa.cliente_id}
         tipoTarefaNome={tarefa.tipos_tarefa?.nome ?? null}
+        showSenderForm={tarefa.status !== "aprovado"}
       />
 
       <TarefaComentarios tarefaId={tarefa.id} />
