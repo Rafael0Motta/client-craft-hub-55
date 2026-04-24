@@ -19,7 +19,7 @@ import { StatusBadge, PriorityBadge } from "@/components/StatusBadge";
 import { CriativosSection } from "@/components/CriativosSection";
 import { TarefaComentarios } from "@/components/TarefaComentarios";
 import { taskStatusOrder, taskStatusLabels, taskPriorityLabels, funilLabels, funilOrder } from "@/lib/labels";
-import { ArrowLeft, Calendar, User as UserIcon, Building2, Pencil } from "lucide-react";
+import { ArrowLeft, Calendar, User as UserIcon, Building2, Pencil, Play, Pause } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -118,6 +118,23 @@ function TarefaDetalhePage() {
     onError: (e: Error) => toast.error("Erro ao atualizar", { description: e.message }),
   });
 
+  // Permite que o cliente alterne o status da própria tarefa entre Pendente e Em andamento.
+  const toggleAndamento = useMutation({
+    mutationFn: async (novoStatus: "pendente" | "em_andamento") => {
+      const { error } = await supabase
+        .from("tarefas")
+        .update({ status: novoStatus as never })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tarefa", id] });
+      qc.invalidateQueries({ queryKey: ["tarefas"] });
+      toast.success("Status atualizado");
+    },
+    onError: (e: Error) => toast.error("Erro ao atualizar status", { description: e.message }),
+  });
+
   const canEdit = role === "admin" || role === "gestor";
 
   if (isLoading) return <div className="text-sm text-muted-foreground">Carregando…</div>;
@@ -153,17 +170,50 @@ function TarefaDetalhePage() {
 
       {isCliente && (
         <Card className="mb-4 border-primary/30 bg-primary/5">
-          <CardContent className="p-4">
-            <div className="text-xs uppercase tracking-wider text-primary font-bold mb-2">Como proceder</div>
-            <ol className="text-sm space-y-1 list-decimal list-inside">
-              <li>Leia atentamente a <strong>descrição</strong> abaixo.</li>
-              {isCriativo ? (
-                <li>Cole o <strong>link do criativo</strong> (Drive, Dropbox, etc.) na seção abaixo e clique em <strong>Enviar link</strong>.</li>
-              ) : (
-                <li>Envie o(s) <strong>arquivo(s) ou link(s)</strong> na seção abaixo.</li>
-              )}
-              <li>Aguarde a <strong>aprovação</strong> do gestor. Se reprovado, envie uma <strong>nova versão</strong>.</li>
-            </ol>
+          <CardContent className="p-4 space-y-3">
+            <div>
+              <div className="text-xs uppercase tracking-wider text-primary font-bold mb-2">Como proceder</div>
+              <ol className="text-sm space-y-1 list-decimal list-inside">
+                <li>Leia atentamente a <strong>descrição</strong> abaixo.</li>
+                {isCriativo ? (
+                  <li>Cole o <strong>link do criativo</strong> (Drive, Dropbox, etc.) na seção abaixo e clique em <strong>Enviar link</strong>.</li>
+                ) : (
+                  <li>Envie sua resposta abaixo: pode ser um <strong>arquivo</strong>, um <strong>link</strong> ou apenas um <strong>texto</strong>.</li>
+                )}
+                {isCriativo ? (
+                  <li>Aguarde a <strong>aprovação</strong> do gestor. Se reprovado, envie uma <strong>nova versão</strong>.</li>
+                ) : (
+                  <li>Quando começar a trabalhar nesta tarefa, clique em <strong>"Iniciar tarefa"</strong> abaixo para que o gestor saiba que você está nela.</li>
+                )}
+              </ol>
+            </div>
+
+            {/* Botão de autonomia: cliente alterna entre Pendente e Em andamento */}
+            {(tarefa.status === "pendente" || tarefa.status === "em_andamento") && (
+              <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-primary/20">
+                <span className="text-xs text-muted-foreground">Esta tarefa está você:</span>
+                {tarefa.status === "pendente" ? (
+                  <Button
+                    size="sm"
+                    onClick={() => toggleAndamento.mutate("em_andamento")}
+                    disabled={toggleAndamento.isPending}
+                  >
+                    <Play className="h-4 w-4 mr-1" />
+                    Iniciar tarefa
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => toggleAndamento.mutate("pendente")}
+                    disabled={toggleAndamento.isPending}
+                  >
+                    <Pause className="h-4 w-4 mr-1" />
+                    Pausar (voltar a Pendente)
+                  </Button>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -224,12 +274,16 @@ function TarefaDetalhePage() {
       </Card>
 
       <div className="mb-3">
-        <h2 className="text-lg font-semibold">{isCliente ? "Envie seu criativo" : "Criativos vinculados"}</h2>
+        <h2 className="text-lg font-semibold">
+          {isCliente
+            ? (isCriativo ? "Envie seu criativo" : "Envie sua resposta")
+            : (isCriativo ? "Criativos vinculados" : "Entregas e respostas")}
+        </h2>
         {!isCliente && (
           <p className="text-sm text-muted-foreground">
             {isCriativo
               ? "Tarefas do tipo Criativo aceitam apenas links (URLs)."
-              : "Envie e acompanhe os criativos desta tarefa."}
+              : "Arquivos, links e mensagens enviados pelo cliente para esta tarefa."}
           </p>
         )}
       </div>
