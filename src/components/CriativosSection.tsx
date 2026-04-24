@@ -361,117 +361,132 @@ function EnvioCriativoForm({
       } finally { setUploading(false); }
     };
 
+    // Envio unificado: cliente pode anexar arquivo, colar link e/ou escrever
+    // mensagem — tudo na mesma tela. Um único botão "Enviar" se adapta.
+    const [arquivoSelecionado, setArquivoSelecionado] = arquivoState;
+    const temArquivo = !!arquivoSelecionado;
+    const temLink = !!linkUrl.trim();
+    const temTexto = !!descricao.trim();
+    const podeEnviar = temArquivo || temLink || (podeEnviarSoTexto && temTexto);
+
+    const labelBotao = temArquivo
+      ? "Enviar arquivo"
+      : temLink
+        ? "Enviar link"
+        : "Enviar mensagem";
+
+    const handleEnviarUnificado = async () => {
+      if (!user || !tarefaAtiva) return;
+      if (temArquivo) {
+        await handleArquivo(arquivoSelecionado!);
+        setArquivoSelecionado(null);
+        return;
+      }
+      if (temLink) {
+        await handleLink();
+        return;
+      }
+      if (podeEnviarSoTexto && temTexto) {
+        await handleEnviarTexto();
+      }
+    };
+
     return (
       <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
         <CardContent className="p-6 space-y-5">
           <div className="text-center space-y-2">
             <div className="mx-auto h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center">
-              {apenasLink || sourceMode === "link"
-                ? <LinkIcon className="h-7 w-7 text-primary" />
-                : <Upload className="h-7 w-7 text-primary" />}
+              <MessageSquare className="h-7 w-7 text-primary" />
             </div>
             <h3 className="text-lg font-bold">{tituloEnvio}</h3>
             <p className="text-sm text-muted-foreground max-w-md mx-auto">{subtitulo}</p>
           </div>
 
-          {!apenasLink && (
-            <div className="flex items-center justify-center gap-2 text-xs flex-wrap">
-              <button
-                type="button"
-                onClick={() => setSourceMode("arquivo")}
-                className={`px-3 py-1.5 rounded-full font-semibold transition ${
-                  sourceMode === "arquivo" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70"
-                }`}
-              >
-                📁 Enviar arquivo
-              </button>
-              <button
-                type="button"
-                onClick={() => setSourceMode("link")}
-                className={`px-3 py-1.5 rounded-full font-semibold transition ${
-                  sourceMode === "link" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/70"
-                }`}
-              >
-                🔗 Enviar link
-              </button>
+          <div className="space-y-4 max-w-xl mx-auto">
+            {/* Mensagem — sempre visível e em destaque */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold flex items-center gap-1.5">
+                <MessageSquare className="h-4 w-4 text-primary" />
+                Mensagem {podeEnviarSoTexto && <span className="text-xs font-normal text-muted-foreground">(você pode enviar só a mensagem se quiser)</span>}
+              </label>
+              <Textarea
+                rows={4}
+                placeholder={podeEnviarSoTexto
+                  ? "Escreva aqui sua resposta, observação ou comentário…"
+                  : "Mensagem ou observação (opcional)"}
+                value={descricao}
+                onChange={(e) => setDescricao(e.target.value)}
+                className="text-base"
+              />
             </div>
-          )}
 
-          {apenasLink || sourceMode === "link" ? (
-            <div className="space-y-3 max-w-xl mx-auto">
+            {/* Link */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold flex items-center gap-1.5">
+                <LinkIcon className="h-4 w-4 text-primary" />
+                Link {!apenasLink && <span className="text-xs font-normal text-muted-foreground">(opcional)</span>}
+              </label>
               <Input
                 placeholder="https://drive.google.com/..."
                 value={linkUrl}
                 onChange={(e) => setLinkUrl(e.target.value)}
-                className="h-12 text-base"
+                className="h-11 text-base"
               />
-              <Textarea
-                rows={3}
-                placeholder={apenasLink ? "Mensagem ou observação (opcional)" : "Escreva uma mensagem (opcional, ou use só texto se preferir)"}
-                value={descricao}
-                onChange={(e) => setDescricao(e.target.value)}
-              />
-              <Button
-                size="lg"
-                className="w-full h-12 text-base font-semibold"
-                disabled={!linkUrl || uploading}
-                onClick={handleLink}
-              >
-                <LinkIcon className="h-5 w-5 mr-2" />
-                {uploading ? "Enviando…" : "Enviar link"}
-              </Button>
-              {podeEnviarSoTexto && (
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="w-full h-12 text-base font-semibold"
-                  disabled={!descricao.trim() || !!linkUrl || uploading}
-                  onClick={handleEnviarTexto}
-                >
-                  💬 {uploading ? "Enviando…" : "Enviar apenas a mensagem"}
-                </Button>
-              )}
-              <p className="text-[11px] text-center text-muted-foreground">
-                💡 Dica: certifique-se de que o link está com permissão de visualização aberta.
+              <p className="text-[11px] text-muted-foreground">
+                💡 Verifique se o link está com permissão de visualização aberta.
               </p>
             </div>
-          ) : (
-            <div className="space-y-3 max-w-xl mx-auto">
-              <input
-                ref={fileInput}
-                type="file"
-                className="hidden"
-                onChange={(e) => e.target.files?.[0] && handleArquivo(e.target.files[0])}
-              />
-              <button
-                type="button"
-                onClick={() => fileInput.current?.click()}
-                disabled={uploading}
-                className="w-full border-2 border-dashed border-primary/40 rounded-xl py-10 px-6 hover:bg-primary/5 transition flex flex-col items-center gap-2 disabled:opacity-60"
-              >
-                <Upload className="h-10 w-10 text-primary" />
-                <span className="font-semibold">{uploading ? "Enviando…" : "Clique aqui para escolher um arquivo"}</span>
-                <span className="text-xs text-muted-foreground">Imagem, vídeo, PDF, documento, etc.</span>
-              </button>
-              <Textarea
-                rows={3}
-                placeholder={podeEnviarSoTexto ? "Escreva uma mensagem (opcional, ou use só texto se preferir)" : "Mensagem ou observação (opcional)"}
-                value={descricao}
-                onChange={(e) => setDescricao(e.target.value)}
-              />
-              {podeEnviarSoTexto && (
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="w-full h-12 text-base font-semibold"
-                  disabled={!descricao.trim() || uploading}
-                  onClick={handleEnviarTexto}
-                >
-                  💬 {uploading ? "Enviando…" : "Enviar apenas a mensagem"}
-                </Button>
-              )}
-            </div>
-          )}
+
+            {/* Arquivo */}
+            {!apenasLink && (
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold flex items-center gap-1.5">
+                  <Upload className="h-4 w-4 text-primary" />
+                  Arquivo <span className="text-xs font-normal text-muted-foreground">(opcional)</span>
+                </label>
+                <input
+                  ref={fileInput}
+                  type="file"
+                  className="hidden"
+                  onChange={(e) => setArquivoSelecionado(e.target.files?.[0] ?? null)}
+                />
+                {temArquivo ? (
+                  <div className="flex items-center gap-2 rounded-lg border bg-background p-3">
+                    <FileIcon className="h-5 w-5 text-primary shrink-0" />
+                    <span className="text-sm truncate flex-1">{arquivoSelecionado!.name}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => { setArquivoSelecionado(null); if (fileInput.current) fileInput.current.value = ""; }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInput.current?.click()}
+                    disabled={uploading}
+                    className="w-full border-2 border-dashed border-primary/40 rounded-xl py-6 px-4 hover:bg-primary/5 transition flex flex-col items-center gap-1.5 disabled:opacity-60"
+                  >
+                    <Upload className="h-7 w-7 text-primary" />
+                    <span className="font-semibold text-sm">Clique para escolher um arquivo</span>
+                    <span className="text-xs text-muted-foreground">Imagem, vídeo, PDF, documento…</span>
+                  </button>
+                )}
+              </div>
+            )}
+
+            <Button
+              size="lg"
+              className="w-full h-12 text-base font-semibold"
+              disabled={!podeEnviar || uploading}
+              onClick={handleEnviarUnificado}
+            >
+              {uploading ? "Enviando…" : labelBotao}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
