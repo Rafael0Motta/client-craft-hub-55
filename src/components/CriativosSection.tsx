@@ -214,6 +214,7 @@ function EnvioCriativoForm({
   const [linkUrl, setLinkUrl] = useState("");
   const [linkNome, setLinkNome] = useState("");
   const [uploading, setUploading] = useState(false);
+  const arquivoState = useState<File | null>(null);
 
   // Para tarefa global (sem tarefaIdFixo), busca tipo da tarefa selecionada
   const { data: tarefasCliente } = useQuery({
