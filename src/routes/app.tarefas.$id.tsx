@@ -275,11 +275,17 @@ function TarefaDetalhePage() {
 
       <div className="mb-3">
         <h2 className="text-lg font-semibold">
-          {isCliente
-            ? (isCriativo ? "Envie seu criativo" : "Envie sua resposta")
-            : (isCriativo ? "Criativos vinculados" : "Entregas e respostas")}
+          {tarefa.status === "aprovado"
+            ? (isCriativo ? "Criativos enviados" : "Entregas e respostas")
+            : isCliente
+              ? (isCriativo ? "Envie seu criativo" : "Envie sua resposta")
+              : (isCriativo ? "Criativos vinculados" : "Entregas e respostas")}
         </h2>
-        {!isCliente && (
+        {tarefa.status === "aprovado" ? (
+          <p className="text-sm text-muted-foreground">
+            Esta tarefa foi aprovada — não é mais possível enviar novas respostas.
+          </p>
+        ) : !isCliente && (
           <p className="text-sm text-muted-foreground">
             {isCriativo
               ? "Tarefas do tipo Criativo aceitam apenas links (URLs)."
